@@ -93,11 +93,6 @@ Au démarrage, vous devez vous connecter ou créer un compte.
 
 ---
 
-### Quitter
-
-
-0 -> Quitter l’application
-
 
 ### Notes
 
