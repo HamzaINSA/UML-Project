@@ -175,5 +175,3 @@ Suivant votre rôle vous aurait accès à plus ou moins de fonctionnalité, veui
 
 
 ---
-
-Fin du guide utilisateur
