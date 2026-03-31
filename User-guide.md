@@ -3,10 +3,7 @@
 ## Introduction
 
 Au démarrage, vous devez vous connecter ou créer un compte.
-
----
-
-## Guide utilisation pour utilsiateur avec le role "Agence gouvernementale".
+Suivant votre rôle vous aurait accès à plus ou moins de fonctionnalité, veuillez vous référer à la partie correspondant au rôle de votre comtpe.
 
 ### Authentification
 
@@ -15,11 +12,12 @@ Au démarrage, vous devez vous connecter ou créer un compte.
   2 -> Créer un compte
   0 -> Quitter
 ```
-
 - Entrez votre choix
 - Suivez les instructions affichées
-
+  
 ---
+
+## Guide utilisation pour utilsiateur avec le role "Agence gouvernementale".
 
 ### Menu Principal
 
@@ -101,6 +99,78 @@ Au démarrage, vous devez vous connecter ou créer un compte.
 - Les capteurs non fiables (venant de particulier non fiable ) sont exclus des calculs
 
 ---
+
+## Guide utilisation pour utilsiateur avec le role "Fournisseur".
+
+### Menu Principal
+
+```bash
+  1 -> Statistiques
+  2 -> Comparer des capteurs
+  3 -> Impact des purificateurs
+  4 -> Quitter
+```
+
+---
+
+### Fonctionnalités
+
+#### 1 -> Statistiques
+ - Après avoir cliqué sur le touche 1, la liste des statistiques disponibles s'affichera.
+ - Choissez une statistiques parmit la liste et suivez les instructions.
+
+---
+
+#### 2 -> Comparer des capteurs
+  - La liste de tous les capteurs s'affichera.
+  - Choissisez dans cette liste le capteur de référence et/ou renseignez son ID.
+  - Entrez une période
+  - Après avoir suivi les instructions, les capteurs seront classés par similarité.
+
+---
+
+#### 3 -> Impact des purificateurs
+  - Cette fonctionnalité permet d'estimer l'impact des purificateurs d'air et vous fournit les informations suivantes :
+    - Les purificateurs actifs
+    - Leur zone d’influence
+    - L’amélioration de la qualité de l’air ( ou non ).
+
+
+## Guide utilisation pour utilsiateur avec le role "Particulier".
+
+### Menu Principal
+
+```bash
+  1 -> Statistiques
+  2 -> Comparer des capteurs
+  3 -> Impact des purificateurs
+  4 -> Quitter
+```
+
+---
+
+### Fonctionnalités
+
+#### 1 -> Statistiques
+ - Après avoir cliqué sur le touche 1, la liste des statistiques disponibles s'affichera.
+ - Choissez une statistiques parmit la liste et suivez les instructions.
+
+---
+
+#### 2 -> Comparer des capteurs
+  - La liste de tous les capteurs s'affichera.
+  - Choissisez dans cette liste le capteur de référence et/ou renseignez son ID.
+  - Entrez une période
+  - Après avoir suivi les instructions, les capteurs seront classés par similarité.
+
+---
+
+#### 3 -> Impact des purificateurs
+  - Cette fonctionnalité permet d'estimer l'impact des purificateurs d'air et vous fournit les informations suivantes :
+    - Les purificateurs actifs
+    - Leur zone d’influence
+    - L’amélioration de la qualité de l’air ( ou non ).
+
 
 
 ---
