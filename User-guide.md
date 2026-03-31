@@ -6,7 +6,9 @@ Au démarrage, vous devez vous connecter ou créer un compte.
 
 ---
 
-## Authentification
+## Guide utilisation pour utilsiateur avec le role "Agence gouvernementale".
+
+### Authentification
 
 ```bash
   1 -> Se connecter
@@ -19,7 +21,7 @@ Au démarrage, vous devez vous connecter ou créer un compte.
 
 ---
 
-## Menu Principal
+### Menu Principal
 
 ```bash
   1 -> Statistiques
@@ -33,21 +35,21 @@ Au démarrage, vous devez vous connecter ou créer un compte.
 
 ---
 
-## Fonctionnalités
+### Fonctionnalités
 
-### 1 -> Statistiques
+#### 1 -> Statistiques
  - Après avoir cliqué sur le touche 1, la liste des statistiques disponibles s'affichera.
  - Choissez une statistiques parmit la liste et suivez les instructions.
 
 ---
 
-### 2 -> Analyser un capteur
+#### 2 -> Analyser un capteur
   - Entrer l’ID du capteur
   - Les informations du capteur s'afficheront
   
 ---
 
-### 3 -> Comparer des capteurs
+#### 3 -> Comparer des capteurs
   - La liste de tous les capteurs s'affichera.
   - Choissisez dans cette liste le capteur de référence et/ou renseignez son ID.
   - Entrez une période
@@ -55,7 +57,7 @@ Au démarrage, vous devez vous connecter ou créer un compte.
 
 ---
 
-### 4 -> Qualité de l’air à une position
+#### 4 -> Qualité de l’air à une position
   - Si vous avez choisi l'option 4, renseignez les informations suivantes :
     - Latitude
     - Longitude
@@ -64,7 +66,7 @@ Au démarrage, vous devez vous connecter ou créer un compte.
 
 ---
 
-### 5 -> Impact des purificateurs
+#### 5 -> Impact des purificateurs
   - Cette fonctionnalité permet d'estimer l'impact des purificateurs d'air et vous fournit les informations suivantes :
     - Les purificateurs actifs
     - Leur zone d’influence
@@ -72,7 +74,7 @@ Au démarrage, vous devez vous connecter ou créer un compte.
 
 ---
 
-### 6 -> Définir fiabilité d’un utilisateur
+#### 6 -> Définir fiabilité d’un utilisateur
 - Cette fonctionnalité permet de définir la fiabilité d'un utilisateur en fonction des données reçu par son ou ses capteurs.
 - Pour cela, entrez l’ID utilisateur.
 - Une fois que l'ID de l'utilisateur sera renseigné, l'application vous donnera accès au données des capteurs de cet utilsateur.
@@ -82,7 +84,7 @@ Au démarrage, vous devez vous connecter ou créer un compte.
 
 ---
 
-### 7 -> Consulter fiabilité d’un utilisateur
+#### 7 -> Consulter fiabilité d’un utilisateur
 - Cette fonctionnalité permet de cpnsulter la fiabilité d'un utilisateur.
 - Pour cela, entrez l’ID utilisateur.
 - Une fois que l'ID de l'utilisateur sera renseigné, l'application vous indiquera le status de l'utilisateur parmit :
@@ -91,18 +93,19 @@ Au démarrage, vous devez vous connecter ou créer un compte.
 
 ---
 
-## Notes
+### Quitter
+
+
+0 -> Quitter l’application
+
+
+### Notes
 
 - Les données sont chargées depuis des fichiers CSV
 - Les utilisateurs gagnent des points si leurs données sont utilisées
 - Les capteurs non fiables (venant de particulier non fiable ) sont exclus des calculs
 
 ---
-
-## Quitter
-
-
-0 -> Quitter l’application
 
 
 ---
