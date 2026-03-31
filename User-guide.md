@@ -3,6 +3,7 @@
 ## Introduction
 
 Au démarrage, vous devez vous connecter ou créer un compte.
+
 Suivant votre rôle vous aurait accès à plus ou moins de fonctionnalité, veuillez vous référer à la partie correspondant au rôle de votre comtpe.
 
 ### Authentification
