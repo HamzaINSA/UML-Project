@@ -49,3 +49,54 @@ end
 deactivate AdministrationService
 deactivate ConsoleUI
 @enduml
+
+scenario2 :
+@startuml
+title Calculer la qualité de l'air sur une zone
+autonumber
+
+actor Agence
+participant ConsoleUI
+participant AirQualityService
+participant DataReader
+participant AdministrationService
+
+Agence -> ConsoleUI : getQualityAir(lat, lon, rayon, debut, fin)
+activate ConsoleUI
+
+ConsoleUI -> AirQualityService : calculerMoyenneAQI(lat, lon, rayon, debut, fin)
+activate AirQualityService
+
+AirQualityService -> DataReader : getCapteursValidesDansRayon(lat, lon, rayon)
+activate DataReader
+DataReader -->> AirQualityService : List<Capteur>
+deactivate DataReader
+
+note right of AirQualityService
+  Les mesures issues des Particuliers
+  marqués comme non fiables sont
+  exclues du calcul.
+end note
+
+loop pour chaque Capteur retenu
+    AirQualityService -> DataReader : getMesuresPeriode(idCapteur, debut, fin)
+    activate DataReader
+    DataReader -->> AirQualityService : List<Mesure> (filtrées)
+    deactivate DataReader
+end
+
+AirQualityService -> AirQualityService : calculerIndiceATMOMoyen()
+activate AirQualityService #DarkSalmon
+deactivate AirQualityService
+
+AirQualityService -> AdministrationService : attribuerPoints(particuliersImpliques)
+activate AdministrationService
+AdministrationService -->> AirQualityService : pointsAttribues
+deactivate AdministrationService
+
+AirQualityService -->> ConsoleUI : indiceATMOMoyen
+deactivate AirQualityService
+
+ConsoleUI -->> Agence : afficher(indiceATMOMoyen)
+deactivate ConsoleUI
+@enduml
