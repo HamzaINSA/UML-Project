@@ -60,6 +60,8 @@ package "Repository (Persistence)" {
     class DataReader {
         + getMesuresCapteur(idCapteur) : List<Mesures>
         + getCapteursVoisins(idCapteur) : List<Capteur>
+        + getCapteursValideDansRayon(lattiutde,longitude,rayon) : List<Capteur>
+        + getMesuresCapteur(idCapteur, debut, fin) : List<Mesures>
         + chargerCapteurs() : List<Capteur>
         + chargerMesures() : List<Mesure>
         + chargerUtilisateurs() : List<Utilisateur>
@@ -70,9 +72,10 @@ package "Repository (Persistence)" {
 
 package "Service (Métiers)" {
     class AirQualityService {
-        + calculerMoyenneAQI(centre : Position, rayon : double, debut : DateTime, fin : DateTime) : double
+        + calculerMoyenneAQI(latittude : double , longitude : double, rayon : double, rayon : double, debut : DateTime, fin : DateTime) : double
         + estimerQualiteAirPosition(lat : double, lon : double, t : DateTime) : double
         + identifierCapteursSimilaires(idCapteur : String, periode : Intervalle) : List<Capteur>
+        + calculerIndiceATMOmoyen(listeMesure : List<Mesure>) : indiceATMO
     }
 
     class AdministrationService {
@@ -80,6 +83,7 @@ package "Service (Métiers)" {
         + classifierParticulier(idUser : String, estFiable : bool)
         + ajouterCapteur(c : Capteur)
         + gererComptes()
+        + attribuerPoints(particuliersImpliques) : bool
     }
 
     class EnvironmentalService {
@@ -95,7 +99,7 @@ package "View" {
     class ConsoleUI {
         + afficherMenuPrincipal()
         + saisirIdCapteur(idCapteur : String)
-        + afficherStatistiques()
+        + getQualityAir(latitude, longitude, rayon, debut,fin)
         + afficherResultatComparaison()
     }
 }
