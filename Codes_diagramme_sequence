@@ -49,7 +49,7 @@ end
 deactivate AdministrationService
 deactivate ConsoleUI
 @enduml
-
+==========================================================================================
 scenario2 :
 @startuml
 title Calculer la qualité de l'air sur une zone
@@ -99,4 +99,192 @@ deactivate AirQualityService
 
 ConsoleUI -->> Agence : afficher(indiceATMOMoyen)
 deactivate ConsoleUI
+@enduml
+=======================================================================================================
+scenario 3 :
+
+@startuml
+title Comparer des capteurs par similarité
+autonumber
+
+actor Agence
+participant ConsoleUI
+participant AirQualityService
+participant DataReader
+
+Agence -> ConsoleUI : choisirCapteurRef(idRef, periode)
+activate ConsoleUI
+
+ConsoleUI -> AirQualityService : comparerCapteurs(idRef, periode)
+activate AirQualityService
+
+AirQualityService -> DataReader : getMesures(idRef, periode)
+activate DataReader
+DataReader -->> AirQualityService : List<Mesure> (référence)
+deactivate DataReader
+
+AirQualityService -> DataReader : getAutresCapteurs(idRef)
+activate DataReader
+DataReader -->> AirQualityService : List<Capteur>
+deactivate DataReader
+
+note right of AirQualityService
+  Score de similarité = distance
+  euclidienne entre les vecteurs
+  de mesures moyennes par
+  AttributMesure (O3, SO2, NO2, PM10).
+  Plus le score est bas, plus le
+  capteur est similaire à la référence.
+end note
+
+loop pour chaque autre Capteur
+    AirQualityService -> DataReader : getMesures(idCapteur, periode)
+    activate DataReader
+    DataReader -->> AirQualityService : List<Mesure>
+    deactivate DataReader
+
+    AirQualityService -> AirQualityService : calculerScoreSimilarite()
+    activate AirQualityService #DarkSalmon
+    deactivate AirQualityService
+end
+
+AirQualityService -> AirQualityService : trierParScoreCroissant()
+activate AirQualityService #DarkSalmon
+deactivate AirQualityService
+
+AirQualityService -->> ConsoleUI : classementTrie
+deactivate AirQualityService
+
+ConsoleUI -->> Agence : afficher(classementTrie)
+deactivate ConsoleUI
+
+@enduml
+
+==========================================================================================
+scenario 4 :
+@startuml
+title Estimer la qualité de l'air à une position
+autonumber
+
+actor Agence
+participant ConsoleUI
+participant AirQualityService
+participant DataReader
+participant AdministrationService
+
+Agence -> ConsoleUI : saisirPosition(lat, lon, timestamp)
+activate ConsoleUI
+
+ConsoleUI -> AirQualityService : estimerQualitePosition(lat, lon, timestamp)
+activate AirQualityService
+
+AirQualityService -> DataReader : getTousCapteurs()
+activate DataReader
+DataReader -->> AirQualityService : List<Capteur>
+deactivate DataReader
+
+alt Un capteur existe exactement à cette position
+    AirQualityService -> DataReader : getMesures(idCapteur, timestamp)
+    activate DataReader
+    DataReader -->> AirQualityService : List<Mesure>
+    deactivate DataReader
+
+    AirQualityService -> AirQualityService : calculerIndiceATMO()
+    activate AirQualityService #DarkSalmon
+    deactivate AirQualityService
+
+else Aucun capteur à cette position exacte
+
+    note right of AirQualityService
+      Interpolation spatiale :
+      sélection des N capteurs les
+      plus proches, puis moyenne
+      pondérée par l'inverse de la
+      distance (plus un capteur est
+      proche, plus son poids est élevé).
+    end note
+
+    AirQualityService -> AirQualityService : selectionnerNCapteursProches()
+    activate AirQualityService #DarkSalmon
+    deactivate AirQualityService
+
+    loop pour chaque capteur proche
+        AirQualityService -> DataReader : getMesures(idCapteur, timestamp)
+        activate DataReader
+        DataReader -->> AirQualityService : List<Mesure>
+        deactivate DataReader
+    end
+
+    AirQualityService -> AirQualityService : interpolerPondereeParDistance()
+    activate AirQualityService #DarkSalmon
+    deactivate AirQualityService
+end
+
+AirQualityService -> AdministrationService : attribuerPoints(particuliersImpliques)
+activate AdministrationService
+AdministrationService -->> AirQualityService : pointsAttribues
+deactivate AdministrationService
+
+AirQualityService -->> ConsoleUI : indiceATMOEstime
+deactivate AirQualityService
+
+ConsoleUI -->> Agence : afficher(indiceATMOEstime)
+deactivate ConsoleUI
+
+@enduml
+=================================================================================================0
+scenario 5 :
+@startuml
+title Observer l'impact d'un purificateur d'air
+autonumber
+
+actor Fournisseur
+participant ConsoleUI
+participant EnvironmentalService
+participant DataReader
+participant AirQualityService
+
+Fournisseur -> ConsoleUI : choisirPurificateur(idPurificateur)
+activate ConsoleUI
+
+ConsoleUI -> EnvironmentalService : mesurerImpact(idPurificateur)
+activate EnvironmentalService
+
+EnvironmentalService -> DataReader : getPurificateur(idPurificateur)
+activate DataReader
+DataReader -->> EnvironmentalService : Purificateur(position, dateDebut, dateFin)
+deactivate DataReader
+
+note right of EnvironmentalService
+  Le rayon d'action est estimé en
+  cherchant le rayon maximal autour
+  du purificateur où l'amélioration
+  de la qualité de l'air reste
+  mesurable (delta significatif).
+end note
+
+EnvironmentalService -> AirQualityService : calculerMoyenneZone(zone, periodeAvantDateDebut)
+activate AirQualityService
+AirQualityService -->> EnvironmentalService : indiceAvant
+deactivate AirQualityService
+
+EnvironmentalService -> AirQualityService : calculerMoyenneZone(zone, dateDebut, dateFin)
+activate AirQualityService
+AirQualityService -->> EnvironmentalService : indicePendant
+deactivate AirQualityService
+
+EnvironmentalService -> EnvironmentalService : calculerDelta(indiceAvant, indicePendant)
+activate EnvironmentalService #DarkSalmon
+deactivate EnvironmentalService
+
+EnvironmentalService -> EnvironmentalService : estimerRayonAction()
+activate EnvironmentalService #DarkSalmon
+deactivate EnvironmentalService
+
+EnvironmentalService -->> ConsoleUI : (deltaQualite, rayonAction)
+deactivate EnvironmentalService
+
+ConsoleUI -->> Fournisseur : afficher(deltaQualite, rayonAction)
+deactivate ConsoleUI
+
 @enduml
