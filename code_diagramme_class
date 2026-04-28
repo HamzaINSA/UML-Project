@@ -1,0 +1,113 @@
+@startuml
+skinparam style strictuml
+skinparam classAttributeIconSize 0
+
+package "Model" {
+    abstract class Utilisateur {
+        - id : String
+        - mdp : String
+        - nom : String
+        - email : String
+        + sAuthentifier() : bool
+    }
+
+    class Agence extends Utilisateur {
+        - serviceReference : String
+        - zoneResponsabilite : String
+    }
+
+    class Particulier extends Utilisateur {
+        - points : int
+        - estFiable : bool
+        - adresse : String
+        + gagnerPoint()
+    }
+
+    class Fournisseur extends Utilisateur {
+        - nomEntreprise : String
+        - numeroSiret : String
+        - contactSupport : String
+    }
+
+    class Capteur {
+        - id : String
+        - latitude : double
+        - longitude : double
+        - estFonctionnel : bool
+    }
+
+    class Mesure {
+        - timestamp : DateTime
+        - valeur : double
+    }
+
+    class AttributMesure {
+        - id : String
+        - unite : String
+        - description : String
+    }
+
+    class Purificateur {
+        - id : String
+        - latitude : double
+        - longitude : double
+        - debutFonctionnement : DateTime
+        - finFonctionnement : DateTime
+    }
+}
+
+package "Repository (Persistence)" {
+    class DataReader {
+        + chargerCapteurs() : List<Capteur>
+        + chargerMesures() : List<Mesure>
+        + chargerUtilisateurs() : List<Utilisateur>
+        + chargerPurificateurs() : List<Purificateur>
+        + sauvegarderDonnees()
+    }
+}
+
+package "Service (Métiers)" {
+    class AirQualityService {
+        + calculerMoyenneAQI(centre : Position, rayon : double, debut : DateTime, fin : DateTime) : double
+        + estimerQualiteAirPosition(lat : double, lon : double, t : DateTime) : double
+        + identifierCapteursSimilaires(idCapteur : String, periode : Intervalle) : List<Capteur>
+    }
+
+    class AdministrationService {
+        + verifierFiabiliteCapteur(idCapteur : String) : bool
+        + classifierParticulier(idUser : String, estFiable : bool)
+        + ajouterCapteur(c : Capteur)
+        + gererComptes()
+    }
+
+    class EnvironmentalService {
+        + calculerImpactPurificateur(idPurif : String) : double
+    }
+    
+    class PerformanceMonitor {
+        + mesurerExecution(methode : String) : long
+    }
+}
+
+package "View" {
+    class ConsoleUI {
+        + afficherMenuPrincipal()
+        + saisirIdentifiants()
+        + afficherStatistiques()
+        + afficherResultatComparaison()
+    }
+}
+
+' Relations Métiers
+Capteur "1" -- "*" Mesure : produit >
+Mesure "*" -- "1" AttributMesure : possède >
+Particulier "1" -- "1" Capteur : possède >
+Fournisseur "1" -- "*" Purificateur : gère >
+
+' Relations Architecture
+ConsoleUI ..> Service : utilise >
+AirQualityService ..> DataReader : lit >
+AdministrationService ..> DataReader : lit/écrit >
+EnvironmentalService ..> DataReader : lit >
+
+@enduml
