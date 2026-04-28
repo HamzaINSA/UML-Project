@@ -1,0 +1,51 @@
+scenario 1 : Analyser un capteur (determoiner s'il est fonctionel ou pas )
+@startuml
+title Analyser un capteur
+autonumber
+
+actor Agence
+participant ConsoleUI
+participant AdministrationService
+participant DataReader
+
+Agence -> ConsoleUI : saisirIdCapteur(idCapteur)
+activate ConsoleUI
+
+ConsoleUI -> AdministrationService : analyserCapteur(idCapteur)
+activate AdministrationService
+
+AdministrationService -> DataReader : getMesuresCapteur(idCapteur)
+activate DataReader
+DataReader -->> AdministrationService : List<Mesure>
+deactivate DataReader
+
+AdministrationService -> DataReader : getCapteursVoisins(idCapteur)
+activate DataReader
+DataReader -->> AdministrationService : List<Capteur>
+deactivate DataReader
+
+note right of AdministrationService
+  Vérification de la cohérence :
+  - comparaison avec les capteurs
+    voisins géographiquement
+  - détection de valeurs aberrantes
+end note
+
+loop pour chaque capteur voisin
+    AdministrationService -> DataReader : getMesuresCapteur(idVoisin, periode)
+    activate DataReader
+    DataReader -->> AdministrationService : List<Mesure>
+    deactivate DataReader
+end
+
+alt Capteur fonctionnel
+    AdministrationService -->> ConsoleUI : rapportAnalyse(OK)
+    ConsoleUI -->> Agence : "Capteur fonctionnel"
+else Capteur défaillant
+    AdministrationService -->> ConsoleUI : rapportAnalyse(DEFAILLANT)
+    ConsoleUI -->> Agence : Alerte : "Capteur défaillant"
+end
+
+deactivate AdministrationService
+deactivate ConsoleUI
+@enduml
