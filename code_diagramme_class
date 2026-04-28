@@ -92,7 +92,7 @@ package "Service (Métiers)" {
 package "View" {
     class ConsoleUI {
         + afficherMenuPrincipal()
-        + saisirIdentifiants()
+        + saisirIdCapteur(idCapteur : String)
         + afficherStatistiques()
         + afficherResultatComparaison()
     }
