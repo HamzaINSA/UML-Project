@@ -32,7 +32,7 @@ note right of AdministrationService
 end note
 
 loop pour chaque capteur voisin
-    AdministrationService -> DataReader : getMesuresCapteur(idVoisin, periode)
+    AdministrationService -> DataReader : getMesuresCapteur(idVoisin)
     activate DataReader
     DataReader -->> AdministrationService : List<Mesure>
     deactivate DataReader
