@@ -58,6 +58,8 @@ package "Model" {
 
 package "Repository (Persistence)" {
     class DataReader {
+        + getMesuresCapteur(idCapteur) : List<Mesures>
+        + getCapteursVoisins(idCapteur) : List<Capteur>
         + chargerCapteurs() : List<Capteur>
         + chargerMesures() : List<Mesure>
         + chargerUtilisateurs() : List<Utilisateur>
@@ -74,7 +76,7 @@ package "Service (Métiers)" {
     }
 
     class AdministrationService {
-        + verifierFiabiliteCapteur(idCapteur : String) : bool
+        + analyserCapteur(idCapteur : String) : bool
         + classifierParticulier(idUser : String, estFiable : bool)
         + ajouterCapteur(c : Capteur)
         + gererComptes()
@@ -109,5 +111,4 @@ ConsoleUI ..> Service : utilise >
 AirQualityService ..> DataReader : lit >
 AdministrationService ..> DataReader : lit/écrit >
 EnvironmentalService ..> DataReader : lit >
-
 @enduml
