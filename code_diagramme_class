@@ -64,7 +64,7 @@ package "Repository (Persistence)" {
         + getCapteursVoisins(idCapteur : String) : List<Capteur>
         + getCapteursOfficielsVoisins(capteur : Capteur, rayon : double) : List<Capteur>
         + getMesuresCapteur(idCapteur : String, periode : Intervalle) : List<Mesure>
-        + getMesures(idCapteur : String, debut : DateTime, fin : DateTime) : List<Mesure>
+        + getMesuresPeriode(idCapteur : String, debut : DateTime, fin : DateTime) : List<Mesure>
         + getMesuresAuTimestamp(idCapteur : String, timestamp : DateTime) : List<Mesure>
         + getMesuresCapteursVoisins(idCapteur : String, periode : Intervalle) : List<Mesure>
         + getPurificateur(idPurificateur : String) : Purificateur
@@ -78,7 +78,7 @@ package "Service (Métiers)" {
     class AirQualityService {
         + calculerMoyenneZone(lat : double, lon : double, rayon : double, debut : DateTime, fin : DateTime) : double
         + estimerQualitePosition(lat : double, lon : double, timestamp : DateTime) : double
-        + comparerCapteurs(idRef : String, periode : Intervalle) : List<Capteur>
+        + comparerCapteurs(idRef : String, debut : int , fin : int) : List<Capteur>
         - calculerIndiceATMOMoyen(mesures : List<Mesure>) : double
         - calculerIndiceATMO(mesures : List<Mesure>) : double
         - calculerScoreSimilarite(mesuresRef : List<Mesure>, mesures : List<Mesure>) : double
@@ -112,7 +112,7 @@ package "View" {
         + saisirIdCapteur() : String
         + saisirParametres() : ParametresZone
         + saisirPosition() : ParametresPosition
-        + choisirCapteurRef() : ParametresComparaison
+        + choisirCapteurRef(idCapteur, debut, fin) : ParametresComparaison
         + choisirPurificateur() : String
         + choisirParticulierEtCapteur() : ParametresFiabilite
         + afficherResultat(resultat : Object)
@@ -140,5 +140,4 @@ EnvironmentalService ..> AirQualityService : utilise >
 AirQualityService ..> PerformanceMonitor : utilise >
 AdministrationService ..> PerformanceMonitor : utilise >
 EnvironmentalService ..> PerformanceMonitor : utilise >
-
 @enduml
