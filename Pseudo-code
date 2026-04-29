@@ -1,0 +1,321 @@
+scenario 1:
+ALGORITHME analyserCapteur
+ENTRÉES : idCapteur, periode (debut, fin)
+SORTIE  : rapport { etat ∈ {FONCTIONNEL, DEFAILLANT}, anomalies[] }
+
+DÉBUT
+    PerformanceMonitor.demarrer("analyserCapteur")
+
+    capteur ← DataReader.getCapteur(idCapteur)
+    SI capteur = NULL ALORS
+        RETOURNER rapport(etat = INTROUVABLE)
+    FIN SI
+
+    mesures ← DataReader.getMesuresCapteur(idCapteur, periode)
+    voisins ← DataReader.getCapteursVoisins(capteur, RAYON_VOISINAGE)
+
+    anomalies ← liste vide
+    nbAttributs ← 0
+    ecartTotal ← 0
+
+    POUR CHAQUE attribut DANS {O3, SO2, NO2, PM10} FAIRE
+        moyenneCapteur ← moyenne(mesures, attribut)
+
+        valeursVoisins ← liste vide
+        POUR CHAQUE v DANS voisins FAIRE
+            mesuresVoisin ← DataReader.getMesuresCapteur(v.id, periode)
+            ajouter moyenne(mesuresVoisin, attribut) à valeursVoisins
+        FIN POUR
+
+        moyenneVoisinage ← moyenne(valeursVoisins)
+        ecart ← |moyenneCapteur − moyenneVoisinage|
+
+        SI moyenneCapteur HORS bornesPhysiques(attribut) ALORS
+            anomalies.ajouter("Valeur hors bornes : " + attribut)
+        SI ecart > SEUIL_ECART(attribut) ALORS
+            anomalies.ajouter("Écart anormal vs voisins : " + attribut)
+        SI varianceConstante(mesures, attribut) ALORS
+            anomalies.ajouter("Valeurs constantes suspectes : " + attribut)
+
+        ecartTotal ← ecartTotal + ecart
+        nbAttributs ← nbAttributs + 1
+    FIN POUR
+
+    SI anomalies est vide ALORS
+        rapport ← (etat = FONCTIONNEL, anomalies = [])
+    SINON
+        rapport ← (etat = DEFAILLANT, anomalies)
+    FIN SI
+
+    PerformanceMonitor.arreter("analyserCapteur")
+    RETOURNER rapport
+FIN
+=========================================================================================
+scenario 2:
+ALGORITHME calculerMoyenneZone
+ENTRÉES : latCentre, lonCentre, rayon, periode (debut, fin)
+SORTIE  : indiceATMOMoyen
+
+DÉBUT
+    PerformanceMonitor.demarrer("calculerMoyenneZone")
+
+    capteursZone ← DataReader.getCapteursDansRayon(latCentre, lonCentre, rayon)
+    moyennesParAttribut ← table vide   // O3 → [], SO2 → [], NO2 → [], PM10 → []
+    particuliersImpliques ← ensemble vide
+
+    POUR CHAQUE c DANS capteursZone FAIRE
+        // Exclusion des données issues d'utilisateurs non fiables
+        SI c.proprietaire ≠ NULL ET c.proprietaire.estFiable = FAUX ALORS
+            CONTINUER
+        FIN SI
+
+        mesures ← DataReader.getMesures(c.id, periode)
+        mesures ← filtrer(mesures, m → m.estValide = VRAI)
+
+        SI mesures est vide ALORS CONTINUER FIN SI
+
+        POUR CHAQUE attribut DANS {O3, SO2, NO2, PM10} FAIRE
+            moyAttr ← moyenne(mesures, attribut)
+            SI moyAttr ≠ NULL ALORS
+                moyennesParAttribut[attribut].ajouter(moyAttr)
+            FIN SI
+        FIN POUR
+
+        SI c.proprietaire est un Particulier ALORS
+            particuliersImpliques.ajouter(c.proprietaire)
+        FIN SI
+    FIN POUR
+
+    // Calcul de l'indice ATMO à partir des sous-indices
+    sousIndices ← table vide
+    POUR CHAQUE attribut DANS {O3, SO2, NO2, PM10} FAIRE
+        moyenneGlobale ← moyenne(moyennesParAttribut[attribut])
+        sousIndices[attribut] ← convertirEnSousIndiceATMO(attribut, moyenneGlobale)
+    FIN POUR
+    indiceATMO ← MAX(sousIndices)   // ATMO = pire des sous-indices
+
+    // Récompenses
+    POUR CHAQUE p DANS particuliersImpliques FAIRE
+        AdministrationService.attribuerPoint(p, 1)
+    FIN POUR
+
+    PerformanceMonitor.arreter("calculerMoyenneZone")
+    RETOURNER indiceATMO
+FIN
+==========================================================================================
+scenario 3:
+ALGORITHME comparerCapteurs
+ENTRÉES : idCapteurRef, periode
+SORTIE  : classement trié de couples (capteur, score) — score croissant
+
+DÉBUT
+    PerformanceMonitor.demarrer("comparerCapteurs")
+
+    mesuresRef ← DataReader.getMesures(idCapteurRef, periode)
+    vecteurRef ← vecteurMoyennes(mesuresRef, [O3, SO2, NO2, PM10])
+
+    autresCapteurs ← DataReader.getAutresCapteurs(idCapteurRef)
+    classement ← liste vide
+
+    POUR CHAQUE c DANS autresCapteurs FAIRE
+        mesuresC ← DataReader.getMesures(c.id, periode)
+        SI mesuresC est vide ALORS CONTINUER FIN SI
+
+        vecteurC ← vecteurMoyennes(mesuresC, [O3, SO2, NO2, PM10])
+
+        // Distance euclidienne entre les vecteurs de moyennes par attribut
+        somme ← 0
+        POUR i DE 0 À taille(vecteurRef) − 1 FAIRE
+            somme ← somme + (vecteurRef[i] − vecteurC[i])²
+        FIN POUR
+        score ← racine(somme)
+
+        classement.ajouter( (c, score) )
+    FIN POUR
+
+    trier(classement) PAR score CROISSANT
+    // Plus le score est bas, plus le capteur est similaire à la référence
+
+    PerformanceMonitor.arreter("comparerCapteurs")
+    RETOURNER classement
+FIN
+
+
+FONCTION vecteurMoyennes(mesures, attributs)
+    v ← liste vide
+    POUR CHAQUE a DANS attributs FAIRE
+        v.ajouter( moyenne(mesures, a) )
+    FIN POUR
+    RETOURNER v
+FIN
+=======================================================================================================
+Scenario 4:
+ALGORITHME estimerQualitePosition
+ENTRÉES : lat, lon, timestamp
+SORTIE  : indiceATMOEstime
+
+DÉBUT
+    PerformanceMonitor.demarrer("estimerQualitePosition")
+
+    tousCapteurs ← DataReader.getTousCapteurs()
+    capteurExact ← chercher(tousCapteurs, c → c.lat = lat ET c.lon = lon)
+    particuliersImpliques ← ensemble vide
+
+    SI capteurExact ≠ NULL ALORS
+        mesures ← DataReader.getMesuresAuTimestamp(capteurExact.id, timestamp)
+        indiceATMO ← calculerIndiceATMO(mesures)
+
+        SI capteurExact.proprietaire est un Particulier
+           ET capteurExact.proprietaire.estFiable ALORS
+            particuliersImpliques.ajouter(capteurExact.proprietaire)
+        FIN SI
+    SINON
+        // Interpolation spatiale pondérée par l'inverse de la distance
+        // Plus un capteur est proche, plus son poids est élevé
+        proches ← N_capteursLesPlusProches(tousCapteurs, lat, lon, N)
+
+        sommePonderee ← table vide   // par attribut
+        sommePoids    ← table vide
+
+        POUR CHAQUE c DANS proches FAIRE
+            SI c.proprietaire ≠ NULL ET c.proprietaire.estFiable = FAUX ALORS
+                CONTINUER
+            FIN SI
+
+            mesures ← DataReader.getMesuresAuTimestamp(c.id, timestamp)
+            SI mesures est vide ALORS CONTINUER FIN SI
+
+            d ← distance(lat, lon, c.lat, c.lon)
+            poids ← 1 / (d² + ε)        // ε évite la division par 0
+
+            POUR CHAQUE attribut DANS {O3, SO2, NO2, PM10} FAIRE
+                v ← valeur(mesures, attribut)
+                SI v ≠ NULL ALORS
+                    sommePonderee[attribut] ← sommePonderee[attribut] + v × poids
+                    sommePoids[attribut]    ← sommePoids[attribut]    + poids
+                FIN SI
+            FIN POUR
+
+            SI c.proprietaire est un Particulier ALORS
+                particuliersImpliques.ajouter(c.proprietaire)
+            FIN SI
+        FIN POUR
+
+        valeursInterpolees ← table vide
+        POUR CHAQUE attribut DANS {O3, SO2, NO2, PM10} FAIRE
+            valeursInterpolees[attribut] ← sommePonderee[attribut] / sommePoids[attribut]
+        FIN POUR
+
+        indiceATMO ← calculerIndiceATMO(valeursInterpolees)
+    FIN SI
+
+    POUR CHAQUE p DANS particuliersImpliques FAIRE
+        AdministrationService.attribuerPoint(p, 1)
+    FIN POUR
+
+    PerformanceMonitor.arreter("estimerQualitePosition")
+    RETOURNER indiceATMO
+FIN
+===============================================================================================
+scenario 5:
+ALGORITHME mesurerImpact
+ENTRÉES : idPurificateur
+SORTIE  : { deltaQualite, rayonAction }
+
+DÉBUT
+    PerformanceMonitor.demarrer("mesurerImpact")
+
+    purif ← DataReader.getPurificateur(idPurificateur)
+    SI purif = NULL ALORS RETOURNER ÉCHEC FIN SI
+
+    duree         ← purif.dateFin − purif.dateDebut
+    periodeAvant  ← (purif.dateDebut − duree, purif.dateDebut)
+    periodePendant ← (purif.dateDebut, purif.dateFin)
+
+    // Recherche du rayon d'action : on teste plusieurs rayons croissants
+    // et on conserve le plus grand où l'amélioration reste mesurable.
+    rayonAction ← 0
+    deltaRetenu ← 0
+
+    POUR r DE RAYON_MIN À RAYON_MAX PAR PAS pas FAIRE
+        indiceAvant   ← AirQualityService.calculerMoyenneZone(
+                            purif.lat, purif.lon, r, periodeAvant)
+        indicePendant ← AirQualityService.calculerMoyenneZone(
+                            purif.lat, purif.lon, r, periodePendant)
+
+        delta ← indiceAvant − indicePendant   // ATMO : plus bas = mieux
+
+        SI delta ≥ SEUIL_AMELIORATION_SIGNIFICATIVE ALORS
+            rayonAction ← r
+            deltaRetenu ← delta
+        SINON
+            // L'amélioration n'est plus mesurable au-delà : on s'arrête
+            SORTIR DE LA BOUCLE
+        FIN SI
+    FIN POUR
+
+    PerformanceMonitor.arreter("mesurerImpact")
+    RETOURNER (deltaQualite = deltaRetenu, rayonAction)
+FIN
+================================================================================================
+scenario 6:
+ALGORITHME classifierFiabilite
+ENTRÉES : idCapteur (capteur d'un Particulier)
+SORTIE  : statut ∈ {FIABLE, NON_FIABLE}
+
+DÉBUT
+    PerformanceMonitor.demarrer("classifierFiabilite")
+
+    capteur     ← DataReader.getCapteur(idCapteur)
+    particulier ← capteur.proprietaire
+    longuePeriode ← (maintenant() − DUREE_ANALYSE, maintenant())
+
+    mesuresPrive   ← DataReader.getMesuresCapteur(idCapteur, longuePeriode)
+    capteursVoisinsOff ← DataReader.getCapteursOfficielsVoisins(
+                            capteur, RAYON_VOISINAGE)
+
+    nbAnomalies ← 0
+    nbAttributs ← 0
+
+    POUR CHAQUE attribut DANS {O3, SO2, NO2, PM10} FAIRE
+        moyennePrive ← moyenne(mesuresPrive, attribut)
+
+        valeursVoisins ← liste vide
+        POUR CHAQUE v DANS capteursVoisinsOff FAIRE
+            mv ← DataReader.getMesuresCapteur(v.id, longuePeriode)
+            ajouter moyenne(mv, attribut) à valeursVoisins
+        FIN POUR
+        moyenneVoisinage ← moyenne(valeursVoisins)
+        ecartType        ← ecartType(valeursVoisins)
+
+        // Critères d'anomalie :
+        //  1. écart trop important par rapport aux capteurs voisins
+        //  2. valeurs constantes suspectes (variance ≈ 0)
+        //  3. valeurs hors bornes physiques de l'attribut
+        SI |moyennePrive − moyenneVoisinage| > K × ecartType ALORS
+            nbAnomalies ← nbAnomalies + 1
+        SI varianceConstante(mesuresPrive, attribut) ALORS
+            nbAnomalies ← nbAnomalies + 1
+        SI moyennePrive HORS bornesPhysiques(attribut) ALORS
+            nbAnomalies ← nbAnomalies + 1
+
+        nbAttributs ← nbAttributs + 1
+    FIN POUR
+
+    SI nbAnomalies ≤ SEUIL_TOLERANCE ALORS
+        statut ← FIABLE
+        capteur.estFiable    ← VRAI
+        particulier.estFiable ← VRAI
+        DataReader.sauvegarderCapteur(capteur)
+    SINON
+        statut ← NON_FIABLE
+        capteur.estFiable    ← FAUX
+        particulier.estFiable ← FAUX
+        DataReader.sauvegarderCapteur(capteur)
+        DataReader.marquerMesuresInvalides(idCapteur)
+        AdministrationService.desactiverAttributionPoints(particulier)
+    FIN SI
+
+    PerformanceMonitor.arreter("classifierFiabilite")
+    RETOURNER statut
+FIN
