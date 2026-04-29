@@ -8,7 +8,6 @@ package "Model" {
         - mdp : String
         - nom : String
         - email : String
-        + sAuthentifier() : bool
     }
 
     class Agence extends Utilisateur {
@@ -20,7 +19,6 @@ package "Model" {
         - points : int
         - estFiable : bool
         - adresse : String
-        + gagnerPoint()
     }
 
     class Fournisseur extends Utilisateur {
@@ -33,12 +31,13 @@ package "Model" {
         - id : String
         - latitude : double
         - longitude : double
-        - estFonctionnel : bool
+        - estFiable : bool
     }
 
     class Mesure {
         - timestamp : DateTime
         - valeur : double
+        - estValide : bool
     }
 
     class AttributMesure {
@@ -51,68 +50,95 @@ package "Model" {
         - id : String
         - latitude : double
         - longitude : double
-        - debutFonctionnement : DateTime
-        - finFonctionnement : DateTime
+        - dateDebut : DateTime
+        - dateFin : DateTime
     }
 }
 
 package "Repository (Persistence)" {
     class DataReader {
-        + getMesuresCapteur(idCapteur) : List<Mesures>
-        + getCapteursVoisins(idCapteur) : List<Capteur>
-        + getCapteursValideDansRayon(lattiutde,longitude,rayon) : List<Capteur>
-        + getMesuresCapteur(idCapteur, debut, fin) : List<Mesures>
-        + chargerCapteurs() : List<Capteur>
-        + chargerMesures() : List<Mesure>
-        + chargerUtilisateurs() : List<Utilisateur>
-        + chargerPurificateurs() : List<Purificateur>
-        + sauvegarderDonnees()
+        + getCapteur(idCapteur : String) : Capteur
+        + getTousCapteurs() : List<Capteur>
+        + getAutresCapteurs(idRef : String) : List<Capteur>
+        + getCapteursDansRayon(lat : double, lon : double, rayon : double) : List<Capteur>
+        + getCapteursVoisins(idCapteur : String) : List<Capteur>
+        + getCapteursOfficielsVoisins(capteur : Capteur, rayon : double) : List<Capteur>
+        + getMesuresCapteur(idCapteur : String, periode : Intervalle) : List<Mesure>
+        + getMesures(idCapteur : String, debut : DateTime, fin : DateTime) : List<Mesure>
+        + getMesuresAuTimestamp(idCapteur : String, timestamp : DateTime) : List<Mesure>
+        + getMesuresCapteursVoisins(idCapteur : String, periode : Intervalle) : List<Mesure>
+        + getPurificateur(idPurificateur : String) : Purificateur
+        + marquerCapteur(idCapteur : String, estFiable : bool)
+        + marquerMesuresInvalides(idCapteur : String)
+        + sauvegarderCapteur(capteur : Capteur)
     }
 }
 
 package "Service (Métiers)" {
     class AirQualityService {
-        + calculerMoyenneAQI(latittude : double , longitude : double, rayon : double, rayon : double, debut : DateTime, fin : DateTime) : double
-        + estimerQualiteAirPosition(lat : double, lon : double, t : DateTime) : double
-        + identifierCapteursSimilaires(idCapteur : String, periode : Intervalle) : List<Capteur>
-        + calculerIndiceATMOmoyen(listeMesure : List<Mesure>) : indiceATMO
+        + calculerMoyenneZone(lat : double, lon : double, rayon : double, debut : DateTime, fin : DateTime) : double
+        + estimerQualitePosition(lat : double, lon : double, timestamp : DateTime) : double
+        + comparerCapteurs(idRef : String, periode : Intervalle) : List<Capteur>
+        - calculerIndiceATMOMoyen(mesures : List<Mesure>) : double
+        - calculerIndiceATMO(mesures : List<Mesure>) : double
+        - calculerScoreSimilarite(mesuresRef : List<Mesure>, mesures : List<Mesure>) : double
+        - trierParScoreCroissant(classement : List)
+        - selectionnerNCapteursProches(lat : double, lon : double, n : int) : List<Capteur>
+        - interpolerPondereeParDistance(capteurs : List<Capteur>, lat : double, lon : double) : double
     }
 
     class AdministrationService {
-        + analyserCapteur(idCapteur : String) : bool
-        + classifierParticulier(idUser : String, estFiable : bool)
-        + ajouterCapteur(c : Capteur)
-        + gererComptes()
-        + attribuerPoints(particuliersImpliques) : bool
+        + analyserCapteur(idCapteur : String, periode : Intervalle) : Rapport
+        + classifierFiabilite(idCapteur : String) : bool
+        + attribuerPoints(particuliersImpliques : List<Particulier>)
+        + desactiverAttributionPoints(idParticulier : String)
     }
 
     class EnvironmentalService {
-        + calculerImpactPurificateur(idPurif : String) : double
+        + mesurerImpact(idPurificateur : String) : ImpactPurificateur
+        - calculerDelta(indiceAvant : double, indicePendant : double) : double
+        - estimerRayonAction(purif : Purificateur) : double
     }
-    
+
     class PerformanceMonitor {
-        + mesurerExecution(methode : String) : long
+        + demarrer(nomMethode : String)
+        + arreter(nomMethode : String) : long
     }
 }
 
 package "View" {
     class ConsoleUI {
         + afficherMenuPrincipal()
-        + saisirIdCapteur(idCapteur : String)
-        + getQualityAir(latitude, longitude, rayon, debut,fin)
-        + afficherResultatComparaison()
+        + saisirIdCapteur() : String
+        + saisirParametres() : ParametresZone
+        + saisirPosition() : ParametresPosition
+        + choisirCapteurRef() : ParametresComparaison
+        + choisirPurificateur() : String
+        + choisirParticulierEtCapteur() : ParametresFiabilite
+        + afficherResultat(resultat : Object)
+        + afficherAlerte(message : String)
     }
 }
 
-' Relations Métiers
+' Relations métiers
 Capteur "1" -- "*" Mesure : produit >
-Mesure "*" -- "1" AttributMesure : possède >
-Particulier "1" -- "1" Capteur : possède >
+Mesure "*" -- "1" AttributMesure : concerne >
+Particulier "1" -- "0..1" Capteur : possède >
 Fournisseur "1" -- "*" Purificateur : gère >
 
 ' Relations Architecture
-ConsoleUI ..> Service : utilise >
+ConsoleUI ..> AirQualityService : utilise >
+ConsoleUI ..> AdministrationService : utilise >
+ConsoleUI ..> EnvironmentalService : utilise >
+
 AirQualityService ..> DataReader : lit >
+AirQualityService ..> AdministrationService : utilise >
 AdministrationService ..> DataReader : lit/écrit >
 EnvironmentalService ..> DataReader : lit >
+EnvironmentalService ..> AirQualityService : utilise >
+
+AirQualityService ..> PerformanceMonitor : utilise >
+AdministrationService ..> PerformanceMonitor : utilise >
+EnvironmentalService ..> PerformanceMonitor : utilise >
+
 @enduml
