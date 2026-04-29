@@ -177,13 +177,16 @@ activate ConsoleUI
 ConsoleUI -> AirQualityService : estimerQualitePosition(lat, lon, timestamp)
 activate AirQualityService
 
-AirQualityService -> DataReader : getTousCapteurs()
+AirQualityService -> DataReader : getTousCapteursLatLon(lat, lon)
 activate DataReader
+    note right of DataReader
+      Ici on renverra comme résultat tous capteurs étant à environ 5km du point spécifié.
+    end note
 DataReader -->> AirQualityService : List<Capteur>
 deactivate DataReader
 
-alt Un capteur existe exactement à cette position
-    AirQualityService -> DataReader : getMesures(idCapteur, timestamp)
+alt Capteur trouvé à la position donné
+    AirQualityService -> DataReader : getMesuresAuTimestamp(idCapteur, timestamp)
     activate DataReader
     DataReader -->> AirQualityService : List<Mesure>
     deactivate DataReader
@@ -192,31 +195,11 @@ alt Un capteur existe exactement à cette position
     activate AirQualityService #DarkSalmon
     deactivate AirQualityService
 
-else Aucun capteur à cette position exacte
-
+else
     note right of AirQualityService
-      Interpolation spatiale :
-      sélection des N capteurs les
-      plus proches, puis moyenne
-      pondérée par l'inverse de la
-      distance (plus un capteur est
-      proche, plus son poids est élevé).
+      Aucun capteur à cette position.
+      Renvoyer erreur.
     end note
-
-    AirQualityService -> AirQualityService : selectionnerNCapteursProches()
-    activate AirQualityService #DarkSalmon
-    deactivate AirQualityService
-
-    loop pour chaque capteur proche
-        AirQualityService -> DataReader : getMesures(idCapteur, timestamp)
-        activate DataReader
-        DataReader -->> AirQualityService : List<Mesure>
-        deactivate DataReader
-    end
-
-    AirQualityService -> AirQualityService : interpolerPondereeParDistance()
-    activate AirQualityService #DarkSalmon
-    deactivate AirQualityService
 end
 
 AirQualityService -> AdministrationService : attribuerPoints(particuliersImpliques)
@@ -229,7 +212,6 @@ deactivate AirQualityService
 
 ConsoleUI -->> Agence : afficher(indiceATMOEstime)
 deactivate ConsoleUI
-
 @enduml
 =================================================================================================0
 scenario 5 :
