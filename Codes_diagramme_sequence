@@ -112,13 +112,13 @@ participant ConsoleUI
 participant AirQualityService
 participant DataReader
 
-Agence -> ConsoleUI : choisirCapteurRef(idRef, periode)
+Agence -> ConsoleUI : choisirCapteurRef(idRef, debut, fin)
 activate ConsoleUI
 
 ConsoleUI -> AirQualityService : comparerCapteurs(idRef, periode)
 activate AirQualityService
 
-AirQualityService -> DataReader : getMesures(idRef, periode)
+AirQualityService -> DataReader : getMesuresPeriode(idRef, debut ,fin)
 activate DataReader
 DataReader -->> AirQualityService : List<Mesure> (référence)
 deactivate DataReader
@@ -138,7 +138,7 @@ note right of AirQualityService
 end note
 
 loop pour chaque autre Capteur
-    AirQualityService -> DataReader : getMesures(idCapteur, periode)
+    AirQualityService -> DataReader : getMesuresPeriode(idCapteur, debut, fin)
     activate DataReader
     DataReader -->> AirQualityService : List<Mesure>
     deactivate DataReader
@@ -157,7 +157,6 @@ deactivate AirQualityService
 
 ConsoleUI -->> Agence : afficher(classementTrie)
 deactivate ConsoleUI
-
 @enduml
 
 ==========================================================================================
