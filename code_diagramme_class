@@ -77,7 +77,8 @@ package "Repository (Persistence)" {
 
 package "Service (Métiers)" {
     class AirQualityService {
-        + calculerMoyenneZone(lat : double, lon : double, rayon : double, debut : DateTime, fin : DateTime) : double
+        + calculerMoyenneZonePendant(lat : double, lon : double, rayon : double, debut : DateTime, fin : DateTime) : double
+        + calculerMoyenneZoneJusquaDateDebut(lat : double, lon : double, rayon : double, dateLimite : DateTime) : double
         + estimerQualitePosition(lat : double, lon : double, timestamp : DateTime) : double
         + comparerCapteurs(idRef : String, debut : int , fin : int) : List<Capteur>
         - calculerIndiceATMOMoyen(mesures : List<Mesure>) : double
@@ -95,7 +96,7 @@ package "Service (Métiers)" {
     }
 
     class EnvironmentalService {
-        + mesurerImpact(idPurificateur : String) : ImpactPurificateur
+        + mesurerImpactPurificateur(idPurificateur : String) : ImpactPurificateur
         - calculerDelta(indiceAvant : double, indicePendant : double) : double
         - estimerRayonAction(purif : Purificateur) : double
     }
@@ -113,7 +114,7 @@ package "View" {
         + saisirParametres() : ParametresZone
         + saisirPosition(lat, lon , timestamp) : ParametresPosition
         + choisirCapteurRef(idCapteur, debut, fin) : ParametresComparaison
-        + choisirPurificateur() : String
+        + choisirPurificateur(idPurificateur) : String
         + choisirParticulierEtCapteur() : ParametresFiabilite
         + afficherResultat(resultat : Object)
         + afficherAlerte(message : String)
