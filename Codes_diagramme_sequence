@@ -219,16 +219,16 @@ scenario 5 :
 title Observer l'impact d'un purificateur d'air
 autonumber
 
-actor Fournisseur
+actor FournisseurOrAgency
 participant ConsoleUI
 participant EnvironmentalService
 participant DataReader
 participant AirQualityService
 
-Fournisseur -> ConsoleUI : choisirPurificateur(idPurificateur)
+FournisseurOrAgency -> ConsoleUI : choisirPurificateur(idPurificateur)
 activate ConsoleUI
 
-ConsoleUI -> EnvironmentalService : mesurerImpact(idPurificateur)
+ConsoleUI -> EnvironmentalService : mesurerImpactPurificateur(idPurificateur)
 activate EnvironmentalService
 
 EnvironmentalService -> DataReader : getPurificateur(idPurificateur)
@@ -244,12 +244,12 @@ note right of EnvironmentalService
   mesurable (delta significatif).
 end note
 
-EnvironmentalService -> AirQualityService : calculerMoyenneZone(zone, periodeAvantDateDebut)
+EnvironmentalService -> AirQualityService : calculerMoyenneZoneJusquaDateDebut(lat, lon, rayon, dateLimite)
 activate AirQualityService
 AirQualityService -->> EnvironmentalService : indiceAvant
 deactivate AirQualityService
 
-EnvironmentalService -> AirQualityService : calculerMoyenneZone(zone, dateDebut, dateFin)
+EnvironmentalService -> AirQualityService : calculerMoyenneZonePendant(lat, lon, debut, fin)
 activate AirQualityService
 AirQualityService -->> EnvironmentalService : indicePendant
 deactivate AirQualityService
@@ -265,7 +265,6 @@ deactivate EnvironmentalService
 EnvironmentalService -->> ConsoleUI : (deltaQualite, rayonAction)
 deactivate EnvironmentalService
 
-ConsoleUI -->> Fournisseur : afficher(deltaQualite, rayonAction)
+ConsoleUI -->> FournisseurOrAgency : afficher(deltaQualite, rayonAction)
 deactivate ConsoleUI
-
 @enduml
