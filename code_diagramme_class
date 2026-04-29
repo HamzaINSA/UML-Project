@@ -59,6 +59,7 @@ package "Repository (Persistence)" {
     class DataReader {
         + getCapteur(idCapteur : String) : Capteur
         + getTousCapteurs() : List<Capteur>
+        + getTousCapteursLatLon(lat, lon) : List<Capteur>
         + getAutresCapteurs(idRef : String) : List<Capteur>
         + getCapteursDansRayon(lat : double, lon : double, rayon : double) : List<Capteur>
         + getCapteursVoisins(idCapteur : String) : List<Capteur>
@@ -83,7 +84,6 @@ package "Service (Métiers)" {
         - calculerIndiceATMO(mesures : List<Mesure>) : double
         - calculerScoreSimilarite(mesuresRef : List<Mesure>, mesures : List<Mesure>) : double
         - trierParScoreCroissant(classement : List)
-        - selectionnerNCapteursProches(lat : double, lon : double, n : int) : List<Capteur>
         - interpolerPondereeParDistance(capteurs : List<Capteur>, lat : double, lon : double) : double
     }
 
@@ -111,7 +111,7 @@ package "View" {
         + afficherMenuPrincipal()
         + saisirIdCapteur() : String
         + saisirParametres() : ParametresZone
-        + saisirPosition() : ParametresPosition
+        + saisirPosition(lat, lon , timestamp) : ParametresPosition
         + choisirCapteurRef(idCapteur, debut, fin) : ParametresComparaison
         + choisirPurificateur() : String
         + choisirParticulierEtCapteur() : ParametresFiabilite
