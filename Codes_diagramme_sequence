@@ -115,7 +115,7 @@ participant DataReader
 Agence -> ConsoleUI : choisirCapteurRef(idRef, debut, fin)
 activate ConsoleUI
 
-ConsoleUI -> AirQualityService : comparerCapteurs(idRef, periode)
+ConsoleUI -> AirQualityService : comparerCapteurs(idRef, debut, fin)
 activate AirQualityService
 
 AirQualityService -> DataReader : getMesuresPeriode(idRef, debut ,fin)
