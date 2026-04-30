@@ -249,7 +249,7 @@ activate AirQualityService
 AirQualityService -->> EnvironmentalService : indiceAvant
 deactivate AirQualityService
 
-EnvironmentalService -> AirQualityService : calculerMoyenneZonePendant(lat, lon, debut, fin)
+EnvironmentalService -> AirQualityService : calculerMoyenneZonePendant(lat, lon, rayon, fin)
 activate AirQualityService
 AirQualityService -->> EnvironmentalService : indicePendant
 deactivate AirQualityService
