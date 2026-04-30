@@ -61,13 +61,13 @@ package "Repository (Persistence)" {
         + getTousCapteurs() : List<Capteur>
         + getTousCapteursLatLon(lat, lon) : List<Capteur>
         + getAutresCapteurs(idRef : String) : List<Capteur>
-        + getCapteursDansRayon(lat : double, lon : double, rayon : double) : List<Capteur>
+        + getCapteursValidesDansRayon(lat : double, lon : double, rayon : double) : List<Capteur>
         + getCapteursVoisins(idCapteur : String) : List<Capteur>
         + getCapteursOfficielsVoisins(capteur : Capteur, rayon : double) : List<Capteur>
-        + getMesuresCapteur(idCapteur : String, periode : Intervalle) : List<Mesure>
+        + getMesuresCapteur(idCapteur : String) : List<Mesure>
         + getMesuresPeriode(idCapteur : String, debut : DateTime, fin : DateTime) : List<Mesure>
         + getMesuresAuTimestamp(idCapteur : String, timestamp : DateTime) : List<Mesure>
-        + getMesuresCapteursVoisins(idCapteur : String, periode : Intervalle) : List<Mesure>
+        + getMesuresCapteursVoisins(idCapteur : String) : List<Mesure>
         + getPurificateur(idPurificateur : String) : Purificateur
         + marquerCapteur(idCapteur : String, estFiable : bool)
         + marquerMesuresInvalides(idCapteur : String)
@@ -81,6 +81,7 @@ package "Service (Métiers)" {
         + calculerMoyenneZoneJusquaDateDebut(lat : double, lon : double, rayon : double, dateLimite : DateTime) : double
         + estimerQualitePosition(lat : double, lon : double, timestamp : DateTime) : double
         + comparerCapteurs(idRef : String, debut : int , fin : int) : List<Capteur>
+        + calculerMoyenneAQI(lat, lon, rayon, debut, fin) : double
         - calculerIndiceATMOMoyen(mesures : List<Mesure>) : double
         - calculerIndiceATMO(mesures : List<Mesure>) : double
         - calculerScoreSimilarite(mesuresRef : List<Mesure>, mesures : List<Mesure>) : double
@@ -89,7 +90,7 @@ package "Service (Métiers)" {
     }
 
     class AdministrationService {
-        + analyserCapteur(idCapteur : String, periode : Intervalle) : Rapport
+        + analyserCapteur(idCapteur : String) : Rapport
         + classifierFiabilite(idCapteur : String) : bool
         + attribuerPoints(particuliersImpliques : List<Particulier>)
         + desactiverAttributionPoints(idParticulier : String)
@@ -110,14 +111,15 @@ package "Service (Métiers)" {
 package "View" {
     class ConsoleUI {
         + afficherMenuPrincipal()
-        + saisirIdCapteur() : String
+        + saisirIdCapteur(idCapteur) : String
         + saisirParametres() : ParametresZone
         + saisirPosition(lat, lon , timestamp) : ParametresPosition
         + choisirCapteurRef(idCapteur, debut, fin) : ParametresComparaison
         + choisirPurificateur(idPurificateur) : String
-        + choisirParticulierEtCapteur() : ParametresFiabilite
+        + choisirParticulierEtCapteur(idParticulier, idCapteur) : ParametresFiabilite
         + afficherResultat(resultat : Object)
         + afficherAlerte(message : String)
+        + getQualityAir(lat, lon, rayon, debut, fin)
     }
 }
 
