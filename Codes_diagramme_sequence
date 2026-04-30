@@ -268,3 +268,80 @@ deactivate EnvironmentalService
 ConsoleUI -->> FournisseurOrAgency : afficher(deltaQualite, rayonAction)
 deactivate ConsoleUI
 @enduml
+====================================================================================================
+scenario 6:
+@startuml
+title Classifier la fiabilité d'un capteur privé
+autonumber
+
+actor Agence
+participant ConsoleUI
+participant AdministrationService
+participant DataReader
+
+Agence -> ConsoleUI : choisirParticulierEtCapteur(idParticulier, idCapteur)
+activate ConsoleUI
+
+ConsoleUI -> AdministrationService : classifierFiabilite(idCapteur)
+activate AdministrationService
+
+AdministrationService -> DataReader : getMesuresCapteur(idCapteur)
+activate DataReader
+DataReader -->> AdministrationService : List<Mesure> (capteur privé)
+deactivate DataReader
+
+AdministrationService -> DataReader : getMesuresCapteursVoisins(idCapteur)
+activate DataReader
+DataReader -->> AdministrationService : List<Mesure> (capteurs officiels)
+deactivate DataReader
+
+note right of AdministrationService
+  Critères de détection d'anomalie :
+  - écart trop important par rapport
+    aux capteurs voisins
+  - valeurs constantes suspectes
+  - valeurs hors bornes physiques
+end note
+
+loop pour chaque AttributMesure (O3, SO2, NO2, PM10)
+    AdministrationService -> AdministrationService : comparerMoyennes(attribut)
+    activate AdministrationService #DarkSalmon
+    deactivate AdministrationService
+
+    AdministrationService -> AdministrationService : detecterAnomalies(attribut)
+    activate AdministrationService #DarkSalmon
+    deactivate AdministrationService
+end
+
+alt Capteur jugé FIABLE
+    AdministrationService -> DataReader : marquerCapteur(idCapteur, estFiable=true)
+    activate DataReader
+    DataReader -->> AdministrationService : ok
+    deactivate DataReader
+
+    AdministrationService -->> ConsoleUI : resultat(FIABLE)
+    ConsoleUI -->> Agence : "Capteur fiable — données conservées"
+
+else Capteur jugé NON FIABLE
+    AdministrationService -> DataReader : marquerCapteur(idCapteur, estFiable=false)
+    activate DataReader
+    DataReader -->> AdministrationService : ok
+    deactivate DataReader
+
+    AdministrationService -> DataReader : marquerMesuresInvalides(idCapteur)
+    activate DataReader
+    DataReader -->> AdministrationService : ok
+    deactivate DataReader
+
+    AdministrationService -> AdministrationService : desactiverAttributionPoints(idParticulier)
+    activate AdministrationService #DarkSalmon
+    deactivate AdministrationService
+
+    AdministrationService -->> ConsoleUI : resultat(NON_FIABLE)
+    ConsoleUI -->> Agence : "Capteur non fiable — données exclues, points suspendus"
+end
+
+deactivate AdministrationService
+deactivate ConsoleUI
+
+@enduml
