@@ -1,0 +1,10 @@
+build/
+airwatcher
+airwatcher.exe
+test_airwatcher
+test_airwatcher.exe
+*.o
+*.obj
+*.exe
+.vscode/
+.idea/
