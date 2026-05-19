@@ -20,6 +20,7 @@ constexpr double kVarianceMin    = 1e-3;
 
 struct SeuilEcart { double s; };
 double seuilEcart(const std::string& a) {
+//on definie ici des seuils maximum pour chaque attribut 
     if (a == "O3")   return 40.0;
     if (a == "SO2")  return 30.0;
     if (a == "NO2")  return 30.0;
@@ -42,7 +43,9 @@ double AdministrationService::moyenne(const std::vector<Mesure>& mesures, const 
 
 double AdministrationService::ecartType(const std::vector<Mesure>& mesures, const std::string& attribut) {
     double m = moyenne(mesures, attribut);
+    //s = somme des carrés des écarts à la moyenne pour les mesures valides de cet attribut
     double s = 0.0;
+    //n = nombre de mesures valides pour cet attribut
     int n = 0;
     for (const auto& x : mesures) {
         if (x.getAttributId() == attribut && x.estValide()) {
@@ -51,17 +54,21 @@ double AdministrationService::ecartType(const std::vector<Mesure>& mesures, cons
             ++n;
         }
     }
+    //on retourne la racine de la moyenne de ces carrés d'écarts (écart-type)
     return n == 0 ? 0.0 : std::sqrt(s / n);
 }
 
 bool AdministrationService::varianceConstante(const std::vector<Mesure>& mesures, const std::string& attribut) {
+    // On considère que la variance est anormalement faible si on a au moins 3 mesures valides et que l'écart-type est inférieur à un seuil.
     int n = 0;
     for (const auto& m : mesures) if (m.getAttributId() == attribut && m.estValide()) ++n;
     if (n < 3) return false;
+    //si l'ecart type de toutes les mesures pour cet attribut est inferieur au seuil de variance minimale, alors on considère que la variance est anormalement faible et on retourne true
     return ecartType(mesures, attribut) < kVarianceMin;
 }
 
 bool AdministrationService::horsBornes(const std::string& attribut, double v) {
+    //on verifie que notre valeur n'est pas superieure a une borne fixe par defaut (ces bornes peuvent ne pas etre realistes)
     if (v < 0) return true;
     if (attribut == "O3")   return v > 600.0;
     if (attribut == "SO2")  return v > 1000.0;
@@ -84,19 +91,26 @@ Rapport AdministrationService::analyserCapteur(const std::string& idCapteur) {
     bool aVoisins    = !mesuresVois.empty();
 
     std::vector<std::string> anomalies;
-
+    // Vérifie les anomalies sur les mesures du capteur, en comparant mesures et mesuresVoisins.
     for (const auto& attribut : kAttributs) {
         double moyenneCapteur = moyenne(mesures, attribut);
+        // verifie que chaque attribut n'est pas hors bornes 
 
         if (horsBornes(attribut, moyenneCapteur)) {
+            //si jamais un attribut est hors bornes, on ajoute une anomalie pour cet attribut
             anomalies.push_back("Valeur hors bornes : " + attribut);
         }
+        //si jamais le capteur a des voisins
         if (aVoisins) {
+            //on calcule l'écart entre la moyenne du capteur et la moyenne de ses voisins pour cet attribut
             double ecart = std::fabs(moyenneCapteur - moyenne(mesuresVois, attribut));
+            //si l'ecart est plus grand que le seuil d'ecart pour cet attribut, on ajoute une anomalie pour cet attribut
             if (ecart > seuilEcart(attribut)) {
+                //si jamais l'écart est supérieur au seuil d'écart pour cet attribut, on ajoute une anomalie pour cet attribut
                 anomalies.push_back("Ecart anormal vs voisins : " + attribut);
             }
         }
+        //on verifie que la variance des mesures du capteur pour cet attribut n'est pas anormalement faible (constante)
         if (varianceConstante(mesures, attribut)) {
             anomalies.push_back("Valeurs constantes suspectes : " + attribut);
         }
@@ -128,10 +142,12 @@ bool AdministrationService::classifierFiabilite(const std::string& idCapteur) {
 
     auto mesuresPrive       = data_.getMesuresCapteur(idCapteur);
     auto mesuresVoisins     = data_.getMesuresCapteursVoisins(idCapteur);
-    (void)data_.getCapteursOfficielsVoisins(idCapteur, kRayonVoisinage);  // appelé selon pseudo
+    
+    //(void)data_.getCapteursOfficielsVoisins(idCapteur, kRayonVoisinage);
 
     int nbAnomalies = 0;
 
+    // Vérifie les anomalies sur les mesures du capteur, en comparant mesuresPrive et mesuresVoisins.
     for (const auto& attribut : kAttributs) {
         double moyennePrive     = moyenne(mesuresPrive, attribut);
         double moyenneVoisinage = moyenne(mesuresVoisins, attribut);
@@ -149,6 +165,7 @@ bool AdministrationService::classifierFiabilite(const std::string& idCapteur) {
     }
 
     bool estFiable;
+    // si le nombre d'anomalies est inférieur ou égal au seuil de tolérance, on considère que le capteur est fiable, sinon il est non fiable
     if (nbAnomalies <= kSeuilTolerance) {
         capteur->setEstFiable(true);
         if (particulier) particulier->setEstFiable(true);
@@ -157,6 +174,7 @@ bool AdministrationService::classifierFiabilite(const std::string& idCapteur) {
         estFiable = true;
     } else {
         capteur->setEstFiable(false);
+        // si le capteur est non-fiable alors son propriétaire est considéré comme non-fiable
         if (particulier) particulier->setEstFiable(false);
         data_.marquerCapteur(idCapteur, false);
         data_.marquerMesuresInvalides(idCapteur);

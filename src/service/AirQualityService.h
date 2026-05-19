@@ -38,7 +38,8 @@ public:
                                               const DateTime& dateLimite);
 
     // Pseudocode scenario 4.
-    double estimerQualitePosition(double lat, double lon, const DateTime& timestamp);
+    double estimerQualiteZone(double lat, double lon, double rayon,
+                              const DateTime& debut, const DateTime& fin);
 
     // Pseudocode scenario 3.
     std::vector<CapteurScore> comparerCapteurs(const std::string& idRef,

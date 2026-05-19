@@ -351,6 +351,7 @@ std::vector<Mesure> DataReader::getMesuresCapteursVoisins(const std::string& idC
     const Capteur* ref = getCapteur(idCapteur);
     if (!ref) return {};
     std::unordered_set<std::string> idsVoisins;
+    //parmi tous les capteurs, on garde ceux qui sont dans le rayon et on mémorise leurs ID
     for (const auto& c : capteurs_) {
         if (c.getId() == idCapteur) continue;
         if (distanceKm(ref->getLatitude(), ref->getLongitude(),
@@ -358,6 +359,7 @@ std::vector<Mesure> DataReader::getMesuresCapteursVoisins(const std::string& idC
             idsVoisins.insert(c.getId());
         }
     }
+    //parmi toutes les mesures, on garde celles dont le capteur est dans les voisins
     std::vector<Mesure> out;
     for (const auto& m : mesures_) {
         if (idsVoisins.count(m.getCapteurId())) {
@@ -366,7 +368,6 @@ std::vector<Mesure> DataReader::getMesuresCapteursVoisins(const std::string& idC
     }
     return out;
 }
-
 // ---------------- Purificateurs ----------------
 
 Purificateur* DataReader::getPurificateur(const std::string& idPurificateur) {

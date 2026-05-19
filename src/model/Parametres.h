@@ -15,11 +15,6 @@ struct ParametresZone {
     DateTime fin;
 };
 
-struct ParametresPosition {
-    double   latitude  = 0.0;
-    double   longitude = 0.0;
-    DateTime timestamp;
-};
 
 struct ParametresComparaison {
     std::string idCapteur;

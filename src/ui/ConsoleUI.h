@@ -33,14 +33,12 @@ public:
     // Saisies (signatures du diagramme de classe)
     std::string saisirIdCapteur();
     ParametresZone        saisirParametres();
-    ParametresPosition    saisirPosition();
     ParametresComparaison choisirCapteurRef();
     std::string           choisirPurificateur();
     ParametresFiabilite   choisirParticulierEtCapteur();
 
     void afficherResultat(const std::string& resultat);
     void afficherAlerte(const std::string& message);
-
     // Cas d'utilisation déclenchés depuis les menus
     void analyserCapteur();
     void comparerCapteurs();

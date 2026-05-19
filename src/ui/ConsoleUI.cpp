@@ -74,13 +74,6 @@ ParametresZone ConsoleUI::saisirParametres() {
     return p;
 }
 
-ParametresPosition ConsoleUI::saisirPosition() {
-    ParametresPosition p;
-    p.latitude  = saisirDouble("Latitude : ");
-    p.longitude = saisirDouble("Longitude : ");
-    p.timestamp = saisirDateTime("Date/heure (YYYY-MM-DD HH:MM:SS) : ");
-    return p;
-}
 
 ParametresComparaison ConsoleUI::choisirCapteurRef() {
     std::cout << "Liste des capteurs disponibles :\n";
@@ -108,8 +101,27 @@ std::string ConsoleUI::choisirPurificateur() {
 
 ParametresFiabilite ConsoleUI::choisirParticulierEtCapteur() {
     ParametresFiabilite p;
+    // Affichage de la liste des particuliers
+    std::cout << "Liste des particuliers :\n";
+    for (const auto& u : data_.getUtilisateurs()) {
+        if (u->getRole() != RoleUtilisateur::PARTICULIER) continue;
+        const Particulier* part = static_cast<const Particulier*>(u.get());
+        std::cout << "  - " << part->getId() << " (" << part->getNom() << ")\n";
+    }
     p.idParticulier = saisirLigne("ID utilisateur (particulier) : ");
-    p.idCapteur     = saisirLigne("ID du capteur a evaluer : ");
+    Particulier* part = data_.getParticulier(p.idParticulier);
+    if (!part) {
+        std::cout << "Particulier non trouve.\n";
+        return choisirParticulierEtCapteur();
+    }
+    // Affichage de la liste des capteurs du particulier choisi
+    std::cout << "Capteurs de " << part->getNom() << " :\n";
+    for (const auto& c : data_.getCapteurs()) {
+        if (c.getProprietaireId() == part->getId()) {
+            std::cout << "  - " << c.getId() << " (" << c.getLatitude() << ", " << c.getLongitude() << ")\n";
+        }
+    }
+    p.idCapteur = saisirLigne("ID du capteur a evaluer : ");
     return p;
 }
 
@@ -120,7 +132,6 @@ void ConsoleUI::afficherResultat(const std::string& resultat) {
 void ConsoleUI::afficherAlerte(const std::string& message) {
     std::cout << "[ALERTE] " << message << '\n';
 }
-
 // ----- authentification -----
 
 void ConsoleUI::run() {
@@ -204,7 +215,7 @@ void ConsoleUI::menuAgence() {
         std::cout << "  1 -> Statistiques\n";
         std::cout << "  2 -> Analyser un capteur\n";
         std::cout << "  3 -> Comparer des capteurs\n";
-        std::cout << "  4 -> Qualite de l'air a une position\n";
+        std::cout << "  4 -> Qualite de l'air dans une zone donnée\n";
         std::cout << "  5 -> Impact des purificateurs\n";
         std::cout << "  6 -> Fiabilite d'un utilisateur\n";
         std::cout << "  7 -> Quitter\n";
@@ -246,6 +257,13 @@ void ConsoleUI::menuParticulier() { menuUtilisateurLimite(); }
 // ----- cas d'utilisation -----
 
 void ConsoleUI::analyserCapteur() {
+    //affichage de la liste des capteurs pour aider à choisir un ID valide
+    std::cout << "Liste des capteurs disponibles :\n";
+    for (const auto& c : data_.getCapteurs()) {
+        std::cout << "  - " << c.getId()
+                  << " (" << c.getLatitude() << ", " << c.getLongitude() << ")\n";
+    }
+    
     std::string id = saisirIdCapteur();
     Rapport r = admin_.analyserCapteur(id);
     std::cout << "Etat : " << Rapport::toString(r.getEtat()) << '\n';
@@ -275,29 +293,33 @@ void ConsoleUI::comparerCapteurs() {
 }
 
 void ConsoleUI::qualiteAirPosition() {
-    auto p = saisirPosition();
-    double indice = airQuality_.estimerQualitePosition(p.latitude, p.longitude, p.timestamp);
+    auto p = saisirParametres();
+    double indice = airQuality_.estimerQualiteZone(p.latitude, p.longitude, p.rayon, p.debut, p.fin);
     std::ostringstream os;
-    os << "Indice ATMO estime = " << indice;
+    os << "Indice ATMO moyen = " << indice;
     afficherResultat(os.str());
 }
 
 void ConsoleUI::impactPurificateurs() {
     std::string id = choisirPurificateur();
-    auto impact = env_.mesurerImpactPurificateur(id);
-    if (!impact.estSucces()) {
+    if (!data_.getPurificateur(id)) {
         afficherAlerte("Purificateur introuvable.");
         return;
     }
+    auto impact = env_.mesurerImpactPurificateur(id);
+    if (!impact.estSucces()) {
+        afficherAlerte("Aucun impact mesuré pour ce purificateur car il n'y pas de capteur dans le rayon d'action : 100 km");
+        return;
+    }
     std::ostringstream os;
-    os << "Delta qualite = " << impact.getDelta()
+    os << "Delta indice ATMO avant et pendant utilisation du purificateur = " << impact.getDelta()
        << ", rayon d'action = " << impact.getRayonAction() << " km";
     afficherResultat(os.str());
 }
 
 void ConsoleUI::fiabiliteUtilisateur() {
-    std::cout << "  1 -> Definir fiabilite d'un utilisateur\n";
-    std::cout << "  2 -> Consulter fiabilite d'un utilisateur\n";
+    std::cout << "  1 -> Calculer fiabilite pour un capteur d'un utilisateur\n";
+    std::cout << "  2 -> Consulter fiabilite d'un utilisateur suivant les derniers calculs qui ont ete effectues\n";
     int c = saisirEntier("Votre choix : ");
     if (c == 1) {
         auto p = choisirParticulierEtCapteur();
@@ -321,13 +343,21 @@ void ConsoleUI::fiabiliteUtilisateur() {
             afficherAlerte("Capteur non fiable - donnees exclues, points suspendus");
         }
     } else if (c == 2) {
+        // afficher liste des particuliers pour aider à choisir un ID valide
+        std::cout << "Liste des particuliers :\n";
+        for (const auto& u : data_.getUtilisateurs()) {
+            if (u->getRole() != RoleUtilisateur::PARTICULIER) continue;
+            const Particulier* part = static_cast<const Particulier*>(u.get());
+            std::cout << "  - " << part->getId() << " (" <<
+                part->getNom() << ", points=" << part->getPoints() << ")\n";
+        }
         std::string id = saisirLigne("ID utilisateur : ");
         Particulier* p = data_.getParticulier(id);
         if (!p) { afficherAlerte("Utilisateur introuvable."); return; }
         if (p->estFiable()) {
             afficherResultat("Cet utilisateur est fiable.");
         } else {
-            afficherResultat("Cet utilisateur n'est pas fiable, il est retire de l'application.");
+            afficherResultat("Cet utilisateur n'est pas fiable car il a au moins un capteur non fiable, il est retire de l'application.");
         }
     } else {
         afficherAlerte("Choix invalide.");

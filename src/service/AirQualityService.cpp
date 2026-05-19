@@ -167,51 +167,9 @@ double AirQualityService::interpolerPondereeParDistance(
     return sommeDen == 0.0 ? 0.0 : sommeNum / sommeDen;
 }
 
-double AirQualityService::estimerQualitePosition(double lat, double lon, const DateTime& timestamp) {
-    perf_.demarrer("estimerQualitePosition");
-
-    auto capteursAPosition = data_.getTousCapteursLatLon(lat, lon, 0.5);
-    std::set<std::string> particuliersImpliques;
-
-    double indiceATMO = 0.0;
-    if (!capteursAPosition.empty()) {
-        Capteur* capteurExact = capteursAPosition[0];
-        auto mesures = data_.getMesuresAuTimestamp(capteurExact->getId(), timestamp);
-        indiceATMO = calculerIndiceATMO(mesures);
-        if (capteurExact->aProprietairePrive()) {
-            particuliersImpliques.insert(capteurExact->getProprietaireId());
-        }
-    } else {
-        // Interpolation spatiale pondérée par l'inverse de la distance.
-        auto tousCapteurs = data_.getTousCapteurs();
-        // Tri par distance croissante.
-        std::sort(tousCapteurs.begin(), tousCapteurs.end(),
-                  [&](Capteur* a, Capteur* b) {
-                      return DataReader::distanceKm(lat, lon, a->getLatitude(), a->getLongitude())
-                           < DataReader::distanceKm(lat, lon, b->getLatitude(), b->getLongitude());
-                  });
-        if (static_cast<int>(tousCapteurs.size()) > kNbVoisinsInterpolation) {
-            tousCapteurs.resize(kNbVoisinsInterpolation);
-        }
-
-        std::vector<std::pair<Capteur*, std::vector<Mesure>>> proches;
-        for (auto* c : tousCapteurs) {
-            auto mesuresC = data_.getMesuresAuTimestamp(c->getId(), timestamp);
-            proches.emplace_back(c, std::move(mesuresC));
-            if (c->aProprietairePrive()) {
-                particuliersImpliques.insert(c->getProprietaireId());
-            }
-        }
-        indiceATMO = interpolerPondereeParDistance(proches, lat, lon);
-    }
-
-    if (admin_ && !particuliersImpliques.empty()) {
-        std::vector<std::string> ids(particuliersImpliques.begin(), particuliersImpliques.end());
-        admin_->attribuerPoints(ids);
-    }
-
-    perf_.arreter("estimerQualitePosition");
-    return indiceATMO;
+double AirQualityService::estimerQualiteZone(double lat, double lon, double rayon,
+                                             const DateTime& debut, const DateTime& fin) {
+    return calculerMoyenneAQI(lat, lon, rayon, debut, fin);
 }
 
 } // namespace airwatcher

@@ -8,9 +8,7 @@
 namespace airwatcher {
 
 namespace {
-constexpr double kRayonMin                       = 1.0;   // km
-constexpr double kRayonMax                       = 20.0;  // km
-constexpr double kPas                            = 1.0;   // km
+constexpr double kRayonMax                       = 100.0; // km
 constexpr double kSeuilAmeliorationSignificative = 0.5;   // points ATMO
 }  // namespace
 
@@ -23,20 +21,26 @@ double EnvironmentalService::calculerDelta(double indiceAvant, double indicePend
 }
 
 double EnvironmentalService::estimerRayonAction(const Purificateur& purif) {
-    double rayonRetenu = 0.0;
-    for (double r = kRayonMin; r <= kRayonMax; r += kPas) {
-        double avant = airQuality_.calculerMoyenneZoneJusquaDateDebut(
-            purif.getLatitude(), purif.getLongitude(), r, purif.getDateDebut());
-        double pendant = airQuality_.calculerMoyenneZonePendant(
-            purif.getLatitude(), purif.getLongitude(), r,
-            purif.getDateDebut(), purif.getDateFin());
-        if (avant - pendant >= kSeuilAmeliorationSignificative) {
-            rayonRetenu = r;
-        } else {
-            break;
-        }
+    double maxRayon = 0.0;
+
+    for (const auto& c : data_.getCapteurs()) {
+        double dist = DataReader::distanceKm(
+            purif.getLatitude(), purif.getLongitude(),
+            c.getLatitude(),     c.getLongitude());
+        // On considère que le purificateur n'a pas d'impact au-delà de kRayonMax km.
+        if (dist > kRayonMax) continue; 
+
+        auto mesAvant   = data_.getMesuresPeriode(c.getId(), DateTime::min(), purif.getDateDebut());
+        auto mesPendant = data_.getMesuresPeriode(c.getId(), purif.getDateDebut(), purif.getDateFin());
+
+        double avant   = airQuality_.calculerIndiceATMO(mesAvant);
+        double pendant = airQuality_.calculerIndiceATMO(mesPendant);
+
+        if (avant - pendant >= kSeuilAmeliorationSignificative && dist > maxRayon)
+            maxRayon = dist;
     }
-    return rayonRetenu;
+
+    return maxRayon;
 }
 
 ImpactPurificateur EnvironmentalService::mesurerImpactPurificateur(const std::string& idPurificateur) {
@@ -49,6 +53,7 @@ ImpactPurificateur EnvironmentalService::mesurerImpactPurificateur(const std::st
     }
 
     double rayonAction = estimerRayonAction(*purif);
+    printf("Rayon d'action estimé : %.2f km\n", rayonAction);
     if (rayonAction <= 0.0) {
         perf_.arreter("mesurerImpactPurificateur");
         return ImpactPurificateur::echec();
