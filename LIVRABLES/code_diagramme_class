@@ -1,146 +1,190 @@
 @startuml
-skinparam style strictuml
-skinparam classAttributeIconSize 0
 
-package "Model" {
-    abstract class Utilisateur {
-        - id : String
-        - mdp : String
-        - nom : String
-        - email : String
-    }
-
-    class Agence extends Utilisateur {
-        - serviceReference : String
-        - zoneResponsabilite : String
-    }
-
-    class Particulier extends Utilisateur {
-        - points : int
-        - estFiable : bool
-        - adresse : String
-    }
-
-    class Fournisseur extends Utilisateur {
-        - nomEntreprise : String
-        - numeroSiret : String
-        - contactSupport : String
-    }
-
-    class Capteur {
-        - id : String
-        - latitude : double
-        - longitude : double
-        - estFiable : bool
-    }
-
-    class Mesure {
-        - timestamp : DateTime
-        - valeur : double
-        - estValide : bool
-    }
-
-    class AttributMesure {
-        - id : String
-        - unite : String
-        - description : String
-    }
-
-    class Purificateur {
-        - id : String
-        - latitude : double
-        - longitude : double
-        - dateDebut : DateTime
-        - dateFin : DateTime
-    }
-}
-
-package "Repository (Persistence)" {
-    class DataReader {
-        + getCapteur(idCapteur : String) : Capteur
-        + getTousCapteurs() : List<Capteur>
-        + getTousCapteursLatLon(lat, lon) : List<Capteur>
-        + getAutresCapteurs(idRef : String) : List<Capteur>
-        + getCapteursValidesDansRayon(lat : double, lon : double, rayon : double) : List<Capteur>
-        + getCapteursVoisins(idCapteur : String) : List<Capteur>
-        + getCapteursOfficielsVoisins(capteur : Capteur, rayon : double) : List<Capteur>
-        + getMesuresCapteur(idCapteur : String) : List<Mesure>
-        + getMesuresPeriode(idCapteur : String, debut : DateTime, fin : DateTime) : List<Mesure>
-        + getMesuresAuTimestamp(idCapteur : String, timestamp : DateTime) : List<Mesure>
-        + getMesuresCapteursVoisins(idCapteur : String) : List<Mesure>
-        + getPurificateur(idPurificateur : String) : Purificateur
-        + marquerCapteur(idCapteur : String, estFiable : bool)
-        + marquerMesuresInvalides(idCapteur : String)
-        + sauvegarderCapteur(capteur : Capteur)
-    }
+package "View" {
+  class ConsoleUI {
+    +afficherMenuPrincipal()
+    +saisirIdCapteur(idCapteur : String) : String
+    +saisirParametres() : ParametresZone
+    +saisirPosition(lat : double, lon : double, timestamp : DateTime) : ParametresPosition
+    +choisirCapteurRef(idCapteur : String, debut : DateTime, fin : DateTime) : ParametresComparaison
+    +choisirPurificateur(idPurificateur : String) : String
+    +choisirParticulierEtCapteur(idParticulier : String, idCapteur : String) : ParametresFiabilite
+    +afficherResultat(resultat : Object)
+    +afficherAlerte(message : String)
+    +getQueryAir(lat : double, lon : double, rayon : double, debut : DateTime, fin : DateTime)
+  }
 }
 
 package "Service (Métiers)" {
-    class AirQualityService {
-        + calculerMoyenneZonePendant(lat : double, lon : double, rayon : double, debut : DateTime, fin : DateTime) : double
-        + calculerMoyenneZoneJusquaDateDebut(lat : double, lon : double, rayon : double, dateLimite : DateTime) : double
-        + estimerQualitePosition(lat : double, lon : double, timestamp : DateTime) : double
-        + comparerCapteurs(idRef : String, debut : int , fin : int) : List<Capteur>
-        + calculerMoyenneAQI(lat, lon, rayon, debut, fin) : double
-        - calculerIndiceATMOMoyen(mesures : List<Mesure>) : double
-        - calculerIndiceATMO(mesures : List<Mesure>) : double
-        - calculerScoreSimilarite(mesuresRef : List<Mesure>, mesures : List<Mesure>) : double
-        - trierParScoreCroissant(classement : List)
-        - interpolerPondereeParDistance(capteurs : List<Capteur>, lat : double, lon : double) : double
-    }
 
-    class AdministrationService {
-        + analyserCapteur(idCapteur : String) : Rapport
-        + classifierFiabilite(idCapteur : String) : bool
-        + attribuerPoints(particuliersImpliques : List<Particulier>)
-        + desactiverAttributionPoints(idParticulier : String)
-    }
+  class EnvironmentalService {
+    +mesurerImpactPurificateur(idPurificateur : String) : ImpactPurificateur
+    -calculerDelta(indiceAvant : double, indicePendant : double) : double
+    -estimerRayonAction(purif : Purificateur) : double
+  }
 
-    class EnvironmentalService {
-        + mesurerImpactPurificateur(idPurificateur : String) : ImpactPurificateur
-        - calculerDelta(indiceAvant : double, indicePendant : double) : double
-        - estimerRayonAction(purif : Purificateur) : double
-    }
+  class AirQualityService {
+    +calculerMoyenneZonePendant(lat : double, lon : double, rayon : double, debut : DateTime, fin : DateTime) : double
+    +calculerMoyenneZoneJusquaDateDebut(lat : double, lon : double, rayon : double, debut : DateTime, dateLimite : DateTime) : double
+    +estimerQualitePosition(lat : double, lon : double, timestamp : DateTime) : double
+    +comparerCapteurs(idRef : String, debut : DateTime, fin : DateTime) : List<Capteur>
+    +calculerMoyenneAQI(lat : double, lon : double, rayon : double, debut : DateTime, fin : DateTime) : double
+    +calculerIndiceATMOMoyen(mesures : List<Mesure>) : double
+    +calculerIndiceATMO(mesures : List<Mesure>) : double
+    +calculerScoreSimilarite(mesuresRef : List<Mesure>, mesures : List<Mesure>) : double
+    -trierParScoreCroissant(classement : List)
+    -interpolerPondereeParDistance(capteurs : List<Capteur>, lat : double, lon : double) : double
+  }
 
-    class PerformanceMonitor {
-        + demarrer(nomMethode : String)
-        + arreter(nomMethode : String) : long
-    }
+  class AdministrationService {
+    +analyserCapteur(idCapteur : String) : Rapport
+    +classifierFiabilite(idCapteur : String) : bool
+    +attribuerPoints(particuliersImpliques : List<Particulier>)
+    +desactiverAttributionPoints(idParticulier : String)
+  }
+
+  class PerformanceMonitor {
+    +demarrer(nomMethode : String)
+    +arreter(nomMethode : String) : long
+  }
+
 }
 
-package "View" {
-    class ConsoleUI {
-        + afficherMenuPrincipal()
-        + saisirIdCapteur(idCapteur) : String
-        + saisirParametres() : ParametresZone
-        + saisirPosition(lat, lon , timestamp) : ParametresPosition
-        + choisirCapteurRef(idCapteur, debut, fin) : ParametresComparaison
-        + choisirPurificateur(idPurificateur) : String
-        + choisirParticulierEtCapteur(idParticulier, idCapteur) : ParametresFiabilite
-        + afficherResultat(resultat : Object)
-        + afficherAlerte(message : String)
-        + getQualityAir(lat, lon, rayon, debut, fin)
-    }
+package "Model" {
+
+  abstract class Utilisateur {
+    -id : String
+    -mdp : String
+    -nom : String
+    -email : String
+  }
+
+  class Agence {
+    -serviceReference : String
+    -zoneResponsabilite : String
+  }
+
+  class Particulier {
+    -points : int
+    -estFiable : bool
+    -adresse : String
+  }
+
+  class Fournisseur {
+    -nomEntreprise : String
+    -numeroSiret : String
+    -contactSupport : String
+  }
+
+  class Capteur {
+    -id : String
+    -latitude : double
+    -longitude : double
+    -estFiable : bool
+  }
+
+  class Purificateur {
+    -id : String
+    -latitude : double
+    -longitude : double
+    -dateDebut : DateTime
+    -dateFin : DateTime
+  }
+
+  class Mesure {
+    -timestamp : DateTime
+    -valeur : double
+    -estValide : bool
+  }
+
+  class AttributMesure {
+    -id : String
+    -unite : String
+    -description : String
+  }
+
+  class ImpactPurificateur {
+    -delta : double
+    -rayonAction : double
+  }
+
+  class Rapport {
+    -etat : String
+    -anomalies : List<String>
+  }
+
 }
 
-' Relations métiers
-Capteur "1" -- "*" Mesure : produit >
-Mesure "*" -- "1" AttributMesure : concerne >
-Particulier "1" -- "0..1" Capteur : possède >
-Fournisseur "1" -- "*" Purificateur : gère >
+package "Repository (Persistence)" {
 
-' Relations Architecture
-ConsoleUI ..> AirQualityService : utilise >
-ConsoleUI ..> AdministrationService : utilise >
-ConsoleUI ..> EnvironmentalService : utilise >
+  class DataReader {
+    -capteurs : List<Capteur>
+    -mesures : List<Mesure>
+    -agences : List<Agence>
+    -particuliers : List<Particulier>
+    -fournisseurs : List<Fournisseur>
+    -purificateurs : List<Purificateur>
+    -attributes : List<AttributMesure>
+    +loadDataFromCSV() : void
+    +getCapteur(idCapteur : String) : Capteur
+    +getTousCapteurs() : List<Capteur>
+    +getTousCapteursLatLon(lat : double, lon : double) : List<Capteur>
+    +getAutresCapteurs(idRef : String) : List<Capteur>
+    +getCapteursDansRayon(lat : double, lon : double, rayon : double) : List<Capteur>
+    +getCapteursVoisins(idCapteur : String) : List<Capteur>
+    +getCapteursOfficielsVoisins(idCapteur : String, rayon : double) : List<Capteur>
+    +getMesuresCapteur(idCapteur : String) : List<Mesure>
+    +getMesuresPeriode(idCapteur : String, debut : DateTime, fin : DateTime) : List<Mesure>
+    +getMesuresAuTimestamp(idCapteur : String, timestamp : DateTime) : List<Mesure>
+    +getMesuresCapteursVoisins(idCapteur : String) : List<Mesure>
+    +getPurificateur(idPurificateur : String) : Purificateur
+    +marquerCapteur(idCapteur : String, estFiable : bool)
+    +marquerMesuresInvalides(idCapteur : String)
+    +sauvegarderCapteur(capteur : Capteur)
+    +addCapteur(capteur : Capteur)
+    +addUtilisateur(utilisateur : Utilisateur)
+    +addPurificateur(purificateur : Purificateur)
+    +addMesure(mesure : Mesure)
+    +getCapteurs() : List<Capteur>
+    +getMesures() : List<Mesure>
+    +getAgences() : List<Agence>
+    +getParticuliers() : List<Particulier>
+    +getFournisseurs() : List<Fournisseur>
+    +getPurificateurs() : List<Purificateur>
+    +getAttributes() : List<AttributMesure>
+  }
 
-AirQualityService ..> DataReader : lit >
-AirQualityService ..> AdministrationService : utilise >
-AdministrationService ..> DataReader : lit/écrit >
-EnvironmentalService ..> DataReader : lit >
-EnvironmentalService ..> AirQualityService : utilise >
+}
 
-AirQualityService ..> PerformanceMonitor : utilise >
-AdministrationService ..> PerformanceMonitor : utilise >
-EnvironmentalService ..> PerformanceMonitor : utilise >
+' ── Héritage ──────────────────────────────────────────────────
+Utilisateur <|-- Agence
+Utilisateur <|-- Particulier
+Utilisateur <|-- Fournisseur
+
+' ── Associations ──────────────────────────────────────────────
+Particulier "1" --> "0..1" Capteur : possède
+Fournisseur "1" --> "*"    Purificateur : gère
+Capteur     "1" --> "*"    Mesure       : produit
+Mesure      "*" --> "1"    AttributMesure : concerne
+
+' ── Dépendances (View → Services) ────────────────────────────
+ConsoleUI ..> AirQualityService     : utilise
+ConsoleUI ..> EnvironmentalService  : utilise
+ConsoleUI ..> AdministrationService : utilise
+
+' ── Dépendances (Services → Services) ────────────────────────
+EnvironmentalService ..> AirQualityService   : utilise
+EnvironmentalService ..> PerformanceMonitor  : utilise
+AirQualityService    ..> PerformanceMonitor  : utilise
+AdministrationService ..> PerformanceMonitor : utilise
+
+' ── Dépendances (Services → Repository) ──────────────────────
+EnvironmentalService  ..> DataReader : lit
+AirQualityService     ..> DataReader : lit
+AdministrationService ..> DataReader : lit/écrit
+
+' ── Dépendances (Services → Model retournés) ─────────────────
+EnvironmentalService  ..> ImpactPurificateur : retourne
+AdministrationService ..> Rapport            : retourne
+
 @enduml
