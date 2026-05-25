@@ -5,6 +5,8 @@
 
 #include "../model/ImpactPurificateur.h"
 
+using namespace std;
+
 namespace airwatcher {
 
 class DataReader;
@@ -18,7 +20,7 @@ public:
                          AirQualityService& airQuality);
 
     // Pseudocode scenario 5.
-    ImpactPurificateur mesurerImpactPurificateur(const std::string& idPurificateur);
+    ImpactPurificateur mesurerImpactPurificateur(const string& idPurificateur);
 
 private:
     DataReader&         data_;

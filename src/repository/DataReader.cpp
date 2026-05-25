@@ -10,407 +10,794 @@
 #include <unordered_map>
 #include <unordered_set>
 
+using namespace std;
+
 namespace airwatcher {
 
 namespace {
-constexpr double kPi = 3.14159265358979323846;
-constexpr double kEarthRadiusKm = 6371.0;
+    // Pie
+    const double kPi = 3.14159265358979323846;
 
-double toRad(double deg) { return deg * kPi / 180.0; }
-}  // namespace
+    // Rayon moyen de la Terre en kilomètres.
+    const double kEarthRadiusKm = 6371.0;
 
-DataReader::DataReader(std::string dataDir) : dataDir_(std::move(dataDir)) {}
+    // Convertit un angle en degrés vers des radians.
+    double toRad(double deg) {
+        return deg * kPi / 180.0;
+    }
+}  // namespace anonyme
 
+// ============================================================
+// Constructeur
+// ============================================================
+
+DataReader::DataReader(string dataDir) : dataDir_(move(dataDir)) {} // move = optimisation pour éviter une copie inutile de la chaîne de caractères (on transfère la propriété de la chaîne dataDir à l'objet DataReader)
+// ============================================================
+// Calcul de distance
+// ============================================================
+
+// Calcule la distance en kilomètres entre deux points géographiques
+// à l'aide de la formule de Haversine.
 double DataReader::distanceKm(double lat1, double lon1, double lat2, double lon2) {
     double dLat = toRad(lat2 - lat1);
     double dLon = toRad(lon2 - lon1);
-    double a = std::sin(dLat / 2) * std::sin(dLat / 2)
-             + std::cos(toRad(lat1)) * std::cos(toRad(lat2))
-               * std::sin(dLon / 2) * std::sin(dLon / 2);
-    double c = 2.0 * std::atan2(std::sqrt(a), std::sqrt(1 - a));
+    double a = sin(dLat / 2) * sin(dLat / 2)
+             + cos(toRad(lat1)) * cos(toRad(lat2))
+               * sin(dLon / 2) * sin(dLon / 2);
+    double c = 2.0 * atan2(sqrt(a), sqrt(1 - a));
     return kEarthRadiusKm * c;
 }
 
-std::vector<std::string> DataReader::splitLine(const std::string& line, char sep) {
-    std::vector<std::string> out;
-    std::string cur;
-    for (char c : line) {
-        if (c == sep) {
-            out.push_back(cur);
-            cur.clear();
-        } else if (c != '\r') {
-            cur += c;
+// ============================================================
+// Utilitaire de découpage de ligne CSV
+// ============================================================
+
+// Découpe une ligne de texte selon un séparateur donné et retourne les colonnes.
+// Les caractères '\r' sont ignorés pour gérer les fins de ligne Windows (CRLF).
+vector<string> DataReader::splitLine(const string& line, char sep) {
+    vector<string> resultat;
+    string colonne;
+
+    for (char caractere : line) {
+        if (caractere == sep) {
+            // Fin de la colonne courante : on l'ajoute au résultat.
+            resultat.push_back(colonne);
+            colonne.clear();
+        } else if (caractere != '\r') {
+            // On ignore le retour chariot Windows.
+            colonne += caractere;
         }
     }
-    out.push_back(cur);
-    return out;
+
+    // On ajoute la dernière colonne (pas de séparateur final).
+    resultat.push_back(colonne);
+    return resultat;
 }
 
+// ============================================================
+// Chargement global des données
+// ============================================================
+
+// Charge l'ensemble des données depuis les fichiers CSV du répertoire configuré.
 void DataReader::loadDataFromCSV() {
     loadAttributes();
     loadSensors();
-    loadUsers();        // associe propriétaires aux capteurs
+    loadUsers();         // Associe les propriétaires aux capteurs.
     loadMeasurements();
     loadProviders();
     loadCleaners();
 }
 
+// ============================================================
+// Chargement des attributs
+// ============================================================
+
+// Charge les attributs de qualité de l'air depuis le fichier attributes.csv.
 void DataReader::loadAttributes() {
-    std::ifstream f(dataDir_ + "/attributes.csv");
-    if (!f) {
-        throw std::runtime_error("Impossible d'ouvrir : " + dataDir_ + "/attributes.csv");
+    ifstream fichier(dataDir_ + "/attributes.csv");
+
+    if (!fichier) {
+        throw runtime_error("Impossible d'ouvrir : " + dataDir_ + "/attributes.csv");
     }
-    std::string line;
-    bool header = true;
-    while (std::getline(f, line)) {
-        if (line.empty()) continue;
-        if (header) { header = false; if (line.find("AttributeID") != std::string::npos) continue; }
-        auto cols = splitLine(line);
-        if (cols.size() < 3) continue;
-        attributs_.emplace_back(cols[0], cols[1], cols[2]);
+
+    string ligne;
+    bool estEntete = true;
+
+    while (getline(fichier, ligne)) {
+        if (ligne.empty()) {
+            continue;
+        }
+
+        // On ignore la ligne d'en-tête si elle contient "AttributeID".
+        if (estEntete) {
+            estEntete = false;
+            if (ligne.find("AttributeID") != string::npos) {
+                continue;
+            }
+        }
+
+        vector<string> colonnes = splitLine(ligne);
+
+        if (colonnes.size() < 3) {
+            continue;
+        }
+
+        attributs_.emplace_back(colonnes[0], colonnes[1], colonnes[2]);
     }
 }
 
+// ============================================================
+// Chargement des capteurs
+// ============================================================
+
+// Charge les capteurs depuis le fichier sensors.csv.
 void DataReader::loadSensors() {
-    std::ifstream f(dataDir_ + "/sensors.csv");
-    if (!f) {
-        throw std::runtime_error("Impossible d'ouvrir : " + dataDir_ + "/sensors.csv");
+    ifstream fichier(dataDir_ + "/sensors.csv");
+
+    if (!fichier) {
+        throw runtime_error("Impossible d'ouvrir : " + dataDir_ + "/sensors.csv");
     }
-    std::string line;
-    bool header = true;
-    while (std::getline(f, line)) {
-        if (line.empty()) continue;
-        if (header) { header = false; if (line.find("SensorID") != std::string::npos) continue; }
-        auto cols = splitLine(line);
-        if (cols.size() < 3) continue;
+
+    string ligne;
+    bool estEntete = true;
+
+    while (getline(fichier, ligne)) {
+        if (ligne.empty()) {
+            continue;
+        }
+
+        // On ignore la ligne d'en-tête si elle contient "SensorID".
+        if (estEntete) {
+            estEntete = false;
+            if (ligne.find("SensorID") != string::npos) {
+                continue;
+            }
+        }
+
+        vector<string> colonnes = splitLine(ligne);
+
+        if (colonnes.size() < 3) {
+            continue;
+        }
+
         try {
-            double lat = std::stod(cols[1]);
-            double lon = std::stod(cols[2]);
-            capteurs_.emplace_back(cols[0], lat, lon, true, "");
+            double latitude  = stod(colonnes[1]);
+            double longitude = stod(colonnes[2]);
+            // Le capteur est créé comme fiable par défaut, sans propriétaire assigné.
+            capteurs_.emplace_back(colonnes[0], latitude, longitude, true, "");
         } catch (...) {
-            std::cerr << "Ligne sensors.csv ignorée : " << line << '\n';
+            cerr << "Ligne sensors.csv ignorée : " << ligne << '\n';
         }
     }
 }
 
+// ============================================================
+// Chargement des mesures
+// ============================================================
+
+// Charge les mesures depuis le fichier measurements.csv.
 void DataReader::loadMeasurements() {
-    std::ifstream f(dataDir_ + "/measurements.csv");
-    if (!f) {
-        throw std::runtime_error("Impossible d'ouvrir : " + dataDir_ + "/measurements.csv");
+    ifstream fichier(dataDir_ + "/measurements.csv");
+
+    if (!fichier) {
+        throw runtime_error("Impossible d'ouvrir : " + dataDir_ + "/measurements.csv");
     }
-    std::string line;
-    bool header = true;
-    while (std::getline(f, line)) {
-        if (line.empty()) continue;
-        if (header) { header = false; if (line.find("Timestamp") != std::string::npos) continue; }
-        auto cols = splitLine(line);
-        if (cols.size() < 4) continue;
+
+    string ligne;
+    bool estEntete = true;
+
+    while (getline(fichier, ligne)) {
+        if (ligne.empty()) {
+            continue;
+        }
+
+        // On ignore la ligne d'en-tête si elle contient "Timestamp".
+        if (estEntete) {
+            estEntete = false;
+            if (ligne.find("Timestamp") != string::npos) {
+                continue;
+            }
+        }
+
+        vector<string> colonnes = splitLine(ligne);
+
+        if (colonnes.size() < 4) {
+            continue;
+        }
+
         try {
-            DateTime ts = DateTime::parse(cols[0]);
-            double v = std::stod(cols[3]);
-            mesures_.emplace_back(ts, cols[1], cols[2], v, true);
+            DateTime horodatage = DateTime::parse(colonnes[0]);
+            double valeur       = stod(colonnes[3]);
+            // La mesure est créée comme valide par défaut.
+            mesures_.emplace_back(horodatage, colonnes[1], colonnes[2], valeur, true);
         } catch (...) {
-            std::cerr << "Ligne measurements.csv ignorée : " << line << '\n';
+            cerr << "Ligne measurements.csv ignorée : " << ligne << '\n';
         }
     }
 }
 
+// ============================================================
+// Chargement des purificateurs (cleaners)
+// ============================================================
+
+// Charge les purificateurs depuis le fichier cleaners.csv et
+// leur associe un fournisseur en croisant avec providers.csv.
 void DataReader::loadCleaners() {
-    std::ifstream f(dataDir_ + "/cleaners.csv");
-    if (!f) {
-        throw std::runtime_error("Impossible d'ouvrir : " + dataDir_ + "/cleaners.csv");
+    ifstream fichierCleaners(dataDir_ + "/cleaners.csv");
+
+    if (!fichierCleaners) {
+        throw runtime_error("Impossible d'ouvrir : " + dataDir_ + "/cleaners.csv");
     }
-    // Index fournisseur par cleaner.
-    std::unordered_map<std::string, std::string> cleanerToFournisseur;
+
+    // Construction d'un index : identifiant cleaner → identifiant fournisseur.
+    unordered_map<string, string> cleanerVersFournisseur;
     {
-        std::ifstream pf(dataDir_ + "/providers.csv");
-        if (pf) {
-            std::string l;
-            bool h = true;
-            while (std::getline(pf, l)) {
-                if (l.empty()) continue;
-                if (h) { h = false; if (l.find("ProviderID") != std::string::npos) continue; }
-                auto cols = splitLine(l);
-                if (cols.size() < 2) continue;
-                cleanerToFournisseur[cols[1]] = cols[0];
+        ifstream fichierProviders(dataDir_ + "/providers.csv");
+
+        if (fichierProviders) {
+            string ligneProvider;
+            bool estEntete = true;
+
+            while (getline(fichierProviders, ligneProvider)) {
+                if (ligneProvider.empty()) {
+                    continue;
+                }
+
+                if (estEntete) {
+                    estEntete = false;
+                    if (ligneProvider.find("ProviderID") != string::npos) {
+                        continue;
+                    }
+                }
+
+                vector<string> colonnes = splitLine(ligneProvider);
+
+                if (colonnes.size() < 2) {
+                    continue;
+                }
+
+                // colonnes[0] = identifiant fournisseur, colonnes[1] = identifiant cleaner.
+                cleanerVersFournisseur[colonnes[1]] = colonnes[0];
             }
         }
     }
-    std::string line;
-    bool header = true;
-    while (std::getline(f, line)) {
-        if (line.empty()) continue;
-        if (header) { header = false; if (line.find("CleanerID") != std::string::npos) continue; }
-        auto cols = splitLine(line);
-        if (cols.size() < 5) continue;
+
+    // Lecture des purificateurs.
+    string ligne;
+    bool estEntete = true;
+
+    while (getline(fichierCleaners, ligne)) {
+        if (ligne.empty()) {
+            continue;
+        }
+
+        if (estEntete) {
+            estEntete = false;
+            if (ligne.find("CleanerID") != string::npos) {
+                continue;
+            }
+        }
+
+        vector<string> colonnes = splitLine(ligne);
+
+        if (colonnes.size() < 5) {
+            continue;
+        }
+
         try {
-            double lat = std::stod(cols[1]);
-            double lon = std::stod(cols[2]);
-            DateTime debut = DateTime::parse(cols[3]);
-            DateTime fin   = DateTime::parse(cols[4]);
-            std::string fournisseurId;
-            auto it = cleanerToFournisseur.find(cols[0]);
-            if (it != cleanerToFournisseur.end()) fournisseurId = it->second;
-            purificateurs_.emplace_back(cols[0], lat, lon, debut, fin, fournisseurId);
+            double latitude    = stod(colonnes[1]);
+            double longitude   = stod(colonnes[2]);
+            DateTime debut     = DateTime::parse(colonnes[3]);
+            DateTime fin       = DateTime::parse(colonnes[4]);
+            string fournisseurId;
+
+            // On recherche le fournisseur associé à ce purificateur.
+            unordered_map<string, string>::iterator it = cleanerVersFournisseur.find(colonnes[0]);
+            if (it != cleanerVersFournisseur.end()) {
+                fournisseurId = it->second;
+            }
+
+            purificateurs_.emplace_back(colonnes[0], latitude, longitude, debut, fin, fournisseurId);
         } catch (...) {
-            std::cerr << "Ligne cleaners.csv ignorée : " << line << '\n';
+            cerr << "Ligne cleaners.csv ignorée : " << ligne << '\n';
         }
     }
 }
 
+// ============================================================
+// Chargement des fournisseurs
+// ============================================================
+
+// Crée un objet Fournisseur générique pour chaque identifiant
+// rencontré dans providers.csv.
 void DataReader::loadProviders() {
-    // Création d'un Fournisseur générique pour chaque ProviderID rencontré.
-    std::ifstream f(dataDir_ + "/providers.csv");
-    if (!f) return;
-    std::string line;
-    bool header = true;
-    std::unordered_set<std::string> seen;
-    while (std::getline(f, line)) {
-        if (line.empty()) continue;
-        if (header) { header = false; if (line.find("ProviderID") != std::string::npos) continue; }
-        auto cols = splitLine(line);
-        if (cols.empty()) continue;
-        const std::string& id = cols[0];
-        if (seen.count(id)) continue;
-        seen.insert(id);
-        utilisateurs_.push_back(std::make_shared<Fournisseur>(
-            id, "fournisseur", "Fournisseur " + id, id + "@fournisseur.fr",
-            "Entreprise " + id, "00000000000000", id + "@support.fr"));
+    ifstream fichier(dataDir_ + "/providers.csv");
+
+    if (!fichier) {
+        // Le fichier providers est facultatif : on retourne silencieusement.
+        return;
+    }
+
+    string ligne;
+    bool estEntete = true;
+    unordered_set<string> identifiantsDeja;
+
+    while (getline(fichier, ligne)) {
+        if (ligne.empty()) {
+            continue;
+        }
+
+        if (estEntete) {
+            estEntete = false;
+            if (ligne.find("ProviderID") != string::npos) {
+                continue;
+            }
+        }
+
+        vector<string> colonnes = splitLine(ligne);
+
+        if (colonnes.empty()) {
+            continue;
+        }
+
+        const string& identifiant = colonnes[0];
+
+        // On évite les doublons de fournisseur.
+        if (identifiantsDeja.count(identifiant)) {
+            continue;
+        }
+
+        identifiantsDeja.insert(identifiant);
+
+        // Création d'un fournisseur avec des données génériques basées sur son identifiant.
+        utilisateurs_.push_back(make_shared<Fournisseur>(
+            identifiant,
+            "fournisseur",
+            "Fournisseur " + identifiant,
+            identifiant + "@fournisseur.fr",
+            "Entreprise " + identifiant,
+            "00000000000000",
+            identifiant + "@support.fr"
+        ));
     }
 }
 
+// ============================================================
+// Chargement des utilisateurs (particuliers)
+// ============================================================
+
+// Charge les utilisateurs depuis users.csv et lie chaque
+// particulier au capteur dont il est propriétaire.
 void DataReader::loadUsers() {
-    std::ifstream f(dataDir_ + "/users.csv");
-    if (!f) {
-        throw std::runtime_error("Impossible d'ouvrir : " + dataDir_ + "/users.csv");
+    ifstream fichier(dataDir_ + "/users.csv");
+
+    if (!fichier) {
+        throw runtime_error("Impossible d'ouvrir : " + dataDir_ + "/users.csv");
     }
-    std::string line;
-    bool header = true;
-    while (std::getline(f, line)) {
-        if (line.empty()) continue;
-        if (header) { header = false; if (line.find("UserID") != std::string::npos) continue; }
-        auto cols = splitLine(line);
-        if (cols.size() < 2) continue;
-        const std::string& uid = cols[0];
-        const std::string& sid = cols[1];
 
-        // Crée le Particulier s'il n'existe pas encore.
-        bool existe = false;
-        for (const auto& u : utilisateurs_) {
-            if (u->getId() == uid) { existe = true; break; }
-        }
-        if (!existe) {
-            utilisateurs_.push_back(std::make_shared<Particulier>(
-                uid, "particulier", "Particulier " + uid, uid + "@user.fr",
-                "Adresse inconnue", 0, true, true));
+    string ligne;
+    bool estEntete = true;
+
+    while (getline(fichier, ligne)) {
+        if (ligne.empty()) {
+            continue;
         }
 
-        // Lie le capteur à ce propriétaire.
-        for (auto& c : capteurs_) {
-            if (c.getId() == sid) {
-                c.setProprietaireId(uid);
+        if (estEntete) {
+            estEntete = false;
+            if (ligne.find("UserID") != string::npos) {
+                continue;
+            }
+        }
+
+        vector<string> colonnes = splitLine(ligne);
+
+        if (colonnes.size() < 2) {
+            continue;
+        }
+
+        const string& idUtilisateur = colonnes[0];
+        const string& idCapteur     = colonnes[1];
+
+        // On crée le Particulier seulement s'il n'existe pas encore dans la liste.
+        bool dejaPresent = false;
+        for (const shared_ptr<Utilisateur>& utilisateur : utilisateurs_) {
+            if (utilisateur->getId() == idUtilisateur) {
+                dejaPresent = true;
+                break;
+            }
+        }
+
+        if (!dejaPresent) {
+            utilisateurs_.push_back(make_shared<Particulier>(
+                idUtilisateur,
+                "particulier",
+                "Particulier " + idUtilisateur,
+                idUtilisateur + "@user.fr",
+                "Adresse inconnue",
+                0,
+                true,
+                true
+            ));
+        }
+
+        // On lie le capteur correspondant à ce propriétaire.
+        for (Capteur& capteur : capteurs_) {
+            if (capteur.getId() == idCapteur) {
+                capteur.setProprietaireId(idUtilisateur);
                 break;
             }
         }
     }
 
-    // Une agence par défaut pour la connexion.
-    utilisateurs_.push_back(std::make_shared<Agence>(
-        "agence", "agence", "Agence centrale", "agence@gouv.fr",
-        "Surveillance ATMO", "France"));
+    // On ajoute une agence par défaut pour permettre la connexion de supervision.
+    utilisateurs_.push_back(make_shared<Agence>(
+        "agence",
+        "agence",
+        "Agence centrale",
+        "agence@gouv.fr",
+        "Surveillance ATMO",
+        "France"
+    ));
 }
 
-// ---------------- Capteurs ----------------
+// ============================================================
+// Accès aux capteurs
+// ============================================================
 
-Capteur* DataReader::getCapteur(const std::string& idCapteur) {
-    for (auto& c : capteurs_) if (c.getId() == idCapteur) return &c;
+// Retourne un pointeur vers le capteur dont l'identifiant correspond,
+// ou nullptr s'il n'existe pas (version non-constante).
+Capteur* DataReader::getCapteur(const string& idCapteur) {
+    for (Capteur& capteur : capteurs_) {
+        if (capteur.getId() == idCapteur) {
+            return &capteur;
+        }
+    }
     return nullptr;
 }
 
-const Capteur* DataReader::getCapteur(const std::string& idCapteur) const {
-    for (const auto& c : capteurs_) if (c.getId() == idCapteur) return &c;
+// Retourne un pointeur constant vers le capteur dont l'identifiant correspond,
+// ou nullptr s'il n'existe pas (version constante).
+const Capteur* DataReader::getCapteur(const string& idCapteur) const {
+    for (const Capteur& capteur : capteurs_) {
+        if (capteur.getId() == idCapteur) {
+            return &capteur;
+        }
+    }
     return nullptr;
 }
 
-std::vector<Capteur*> DataReader::getTousCapteurs() {
-    std::vector<Capteur*> out;
-    out.reserve(capteurs_.size());
-    for (auto& c : capteurs_) out.push_back(&c);
-    return out;
+// Retourne tous les capteurs sous forme de pointeurs non-constants.
+vector<Capteur*> DataReader::getTousCapteurs() {
+    vector<Capteur*> resultat;
+    resultat.reserve(capteurs_.size());
+
+    for (Capteur& capteur : capteurs_) {
+        resultat.push_back(&capteur);
+    }
+
+    return resultat;
 }
 
-std::vector<Capteur*> DataReader::getTousCapteursLatLon(double lat, double lon, double tolKm) {
-    std::vector<Capteur*> out;
-    for (auto& c : capteurs_) {
-        if (distanceKm(lat, lon, c.getLatitude(), c.getLongitude()) <= tolKm) {
-            out.push_back(&c);
+// Retourne les capteurs situés dans un rayon de tolérance
+// autour d'une position géographique donnée.
+vector<Capteur*> DataReader::getTousCapteursLatLon(double lat, double lon, double tolKm) {
+    vector<Capteur*> resultat;
+
+    for (Capteur& capteur : capteurs_) {
+        if (distanceKm(lat, lon, capteur.getLatitude(), capteur.getLongitude()) <= tolKm) {
+            resultat.push_back(&capteur);
         }
     }
-    return out;
+
+    return resultat;
 }
 
-std::vector<Capteur*> DataReader::getAutresCapteurs(const std::string& idRef) {
-    std::vector<Capteur*> out;
-    for (auto& c : capteurs_) if (c.getId() != idRef) out.push_back(&c);
-    return out;
-}
+// Retourne tous les capteurs à l'exception du capteur de référence identifié.
+vector<Capteur*> DataReader::getAutresCapteurs(const string& idRef) {
+    vector<Capteur*> resultat;
 
-std::vector<Capteur*> DataReader::getCapteursDansRayon(double lat, double lon, double rayonKm) {
-    std::vector<Capteur*> out;
-    for (auto& c : capteurs_) {
-        if (distanceKm(lat, lon, c.getLatitude(), c.getLongitude()) <= rayonKm) {
-            out.push_back(&c);
+    for (Capteur& capteur : capteurs_) {
+        if (capteur.getId() != idRef) {
+            resultat.push_back(&capteur);
         }
     }
-    return out;
+
+    return resultat;
 }
 
-std::vector<Capteur*> DataReader::getCapteursValidesDansRayon(double lat, double lon, double rayonKm) {
-    std::vector<Capteur*> out;
-    for (auto& c : capteurs_) {
-        if (!c.estFiable()) continue;
-        if (c.aProprietairePrive()) {
-            const Particulier* p = nullptr;
-            for (const auto& u : utilisateurs_) {
-                if (u->getId() == c.getProprietaireId()
-                    && u->getRole() == RoleUtilisateur::PARTICULIER) {
-                    p = static_cast<const Particulier*>(u.get());
+// Retourne les capteurs situés dans un rayon donné autour d'un point géographique.
+vector<Capteur*> DataReader::getCapteursDansRayon(double lat, double lon, double rayonKm) {
+    vector<Capteur*> resultat;
+
+    for (Capteur& capteur : capteurs_) {
+        if (distanceKm(lat, lon, capteur.getLatitude(), capteur.getLongitude()) <= rayonKm) {
+            resultat.push_back(&capteur);
+        }
+    }
+
+    return resultat;
+}
+
+// Retourne les capteurs fiables situés dans un rayon donné.
+// Les capteurs appartenant à un particulier non fiable sont exclus.
+vector<Capteur*> DataReader::getCapteursValidesDansRayon(double lat, double lon, double rayonKm) {
+    vector<Capteur*> resultat;
+
+    for (Capteur& capteur : capteurs_) {
+        // On ignore les capteurs marqués comme non fiables.
+        if (!capteur.estFiable()) {
+            continue;
+        }
+
+        // Si le capteur appartient à un particulier, on vérifie sa fiabilité.
+        if (capteur.aProprietairePrive()) {
+            const Particulier* proprietaire = nullptr;
+
+            for (const shared_ptr<Utilisateur>& utilisateur : utilisateurs_) {
+                if (utilisateur->getId() == capteur.getProprietaireId()
+                    && utilisateur->getRole() == RoleUtilisateur::PARTICULIER)
+                {
+                    proprietaire = static_cast<const Particulier*>(utilisateur.get());
                     break;
                 }
             }
-            if (p && !p->estFiable()) continue;  // exclus si propriétaire non fiable
-        }
-        if (distanceKm(lat, lon, c.getLatitude(), c.getLongitude()) <= rayonKm) {
-            out.push_back(&c);
-        }
-    }
-    return out;
-}
 
-std::vector<Capteur*> DataReader::getCapteursVoisins(const std::string& idCapteur, double rayonKm) {
-    Capteur* ref = getCapteur(idCapteur);
-    if (!ref) return {};
-    std::vector<Capteur*> out;
-    for (auto& c : capteurs_) {
-        if (c.getId() == idCapteur) continue;
-        if (distanceKm(ref->getLatitude(), ref->getLongitude(),
-                       c.getLatitude(), c.getLongitude()) <= rayonKm) {
-            out.push_back(&c);
+            // Si le propriétaire existe mais n'est pas fiable, on exclut le capteur.
+            if (proprietaire != nullptr && !proprietaire->estFiable()) {
+                continue;
+            }
+        }
+
+        if (distanceKm(lat, lon, capteur.getLatitude(), capteur.getLongitude()) <= rayonKm) {
+            resultat.push_back(&capteur);
         }
     }
-    return out;
+
+    return resultat;
 }
 
-std::vector<Capteur*> DataReader::getCapteursOfficielsVoisins(const std::string& idCapteur, double rayonKm) {
-    auto voisins = getCapteursVoisins(idCapteur, rayonKm);
-    std::vector<Capteur*> out;
-    for (auto* c : voisins) {
-        if (!c->aProprietairePrive()) out.push_back(c);
+// Retourne les capteurs voisins d'un capteur de référence
+// situés dans le rayon spécifié (le capteur de référence lui-même est exclu).
+vector<Capteur*> DataReader::getCapteursVoisins(const string& idCapteur, double rayonKm) {
+    Capteur* reference = getCapteur(idCapteur);
+
+    if (reference == nullptr) {
+        return vector<Capteur*>();
     }
-    return out;
-}
 
-// ---------------- Mesures ----------------
+    vector<Capteur*> resultat;
 
-std::vector<Mesure> DataReader::getMesuresCapteur(const std::string& idCapteur) const {
-    std::vector<Mesure> out;
-    for (const auto& m : mesures_) if (m.getCapteurId() == idCapteur) out.push_back(m);
-    return out;
-}
+    for (Capteur& capteur : capteurs_) {
+        if (capteur.getId() == idCapteur) {
+            continue;
+        }
 
-std::vector<Mesure> DataReader::getMesuresPeriode(const std::string& idCapteur,
-                                                  const DateTime& debut, const DateTime& fin) const {
-    std::vector<Mesure> out;
-    for (const auto& m : mesures_) {
-        if (m.getCapteurId() != idCapteur) continue;
-        if (m.getTimestamp() < debut) continue;
-        if (m.getTimestamp() > fin) continue;
-        out.push_back(m);
+        if (distanceKm(reference->getLatitude(), reference->getLongitude(),
+                       capteur.getLatitude(), capteur.getLongitude()) <= rayonKm)
+        {
+            resultat.push_back(&capteur);
+        }
     }
-    return out;
+
+    return resultat;
 }
 
-std::vector<Mesure> DataReader::getMesuresAuTimestamp(const std::string& idCapteur,
-                                                      const DateTime& timestamp,
-                                                      long toleranceSec) const {
-    std::vector<Mesure> out;
-    long long t = static_cast<long long>(timestamp.toEpoch());
-    for (const auto& m : mesures_) {
-        if (m.getCapteurId() != idCapteur) continue;
-        long long diff = static_cast<long long>(m.getTimestamp().toEpoch()) - t;
-        if (diff < 0) diff = -diff;
+// Retourne uniquement les capteurs officiels (sans propriétaire privé)
+// voisins du capteur de référence dans le rayon spécifié.
+vector<Capteur*> DataReader::getCapteursOfficielsVoisins(const string& idCapteur, double rayonKm) {
+    vector<Capteur*> voisins = getCapteursVoisins(idCapteur, rayonKm);
+    vector<Capteur*> resultat;
+
+    for (Capteur* capteur : voisins) {
+        if (!capteur->aProprietairePrive()) {
+            resultat.push_back(capteur);
+        }
+    }
+
+    return resultat;
+}
+
+// ============================================================
+// Accès aux mesures
+// ============================================================
+
+// Retourne toutes les mesures enregistrées pour un capteur donné.
+vector<Mesure> DataReader::getMesuresCapteur(const string& idCapteur) const {
+    vector<Mesure> resultat;
+
+    for (const Mesure& mesure : mesures_) {
+        if (mesure.getCapteurId() == idCapteur) {
+            resultat.push_back(mesure);
+        }
+    }
+
+    return resultat;
+}
+
+// Retourne les mesures d'un capteur comprises dans un intervalle de temps.
+vector<Mesure> DataReader::getMesuresPeriode(const string& idCapteur,
+                                             const DateTime& debut,
+                                             const DateTime& fin) const {
+    vector<Mesure> resultat;
+
+    for (const Mesure& mesure : mesures_) {
+        if (mesure.getCapteurId() != idCapteur) {
+            continue;
+        }
+        if (mesure.getTimestamp() < debut) {
+            continue;
+        }
+        if (mesure.getTimestamp() > fin) {
+            continue;
+        }
+        resultat.push_back(mesure);
+    }
+
+    return resultat;
+}
+
+// Retourne les mesures d'un capteur proches d'un horodatage donné,
+// dans une fenêtre de tolérance exprimée en secondes.
+vector<Mesure> DataReader::getMesuresAuTimestamp(const string& idCapteur,
+                                                 const DateTime& timestamp,
+                                                 long toleranceSec) const {
+    vector<Mesure> resultat;
+    long long epochReference = static_cast<long long>(timestamp.toEpoch());
+
+    for (const Mesure& mesure : mesures_) {
+        if (mesure.getCapteurId() != idCapteur) {
+            continue;
+        }
+
+        long long diff = static_cast<long long>(mesure.getTimestamp().toEpoch()) - epochReference;
+
+        // On prend la valeur absolue de la différence.
+        if (diff < 0) {
+            diff = -diff;
+        }
+
         if (diff <= toleranceSec) {
-            out.push_back(m);
+            resultat.push_back(mesure);
         }
     }
-    return out;
+
+    return resultat;
 }
 
-std::vector<Mesure> DataReader::getMesuresCapteursVoisins(const std::string& idCapteur,
-                                                          double rayonKm) const {
-    const Capteur* ref = getCapteur(idCapteur);
-    if (!ref) return {};
-    std::unordered_set<std::string> idsVoisins;
-    //parmi tous les capteurs, on garde ceux qui sont dans le rayon et on mémorise leurs ID
-    for (const auto& c : capteurs_) {
-        if (c.getId() == idCapteur) continue;
-        if (distanceKm(ref->getLatitude(), ref->getLongitude(),
-                       c.getLatitude(), c.getLongitude()) <= rayonKm) {
-            idsVoisins.insert(c.getId());
-        }
-    }
-    //parmi toutes les mesures, on garde celles dont le capteur est dans les voisins
-    std::vector<Mesure> out;
-    for (const auto& m : mesures_) {
-        if (idsVoisins.count(m.getCapteurId())) {
-            out.push_back(m);
-        }
-    }
-    return out;
-}
-// ---------------- Purificateurs ----------------
+// Retourne toutes les mesures des capteurs voisins d'un capteur de référence
+// situés dans le rayon spécifié.
+vector<Mesure> DataReader::getMesuresCapteursVoisins(const string& idCapteur,
+                                                     double rayonKm) const {
+    const Capteur* reference = getCapteur(idCapteur);
 
-Purificateur* DataReader::getPurificateur(const std::string& idPurificateur) {
-    for (auto& p : purificateurs_) if (p.getId() == idPurificateur) return &p;
+    if (reference == nullptr) {
+        return vector<Mesure>();
+    }
+
+    // On construit l'ensemble des identifiants de capteurs voisins.
+    unordered_set<string> idsVoisins;
+
+    for (const Capteur& capteur : capteurs_) {
+        if (capteur.getId() == idCapteur) {
+            continue;
+        }
+
+        if (distanceKm(reference->getLatitude(), reference->getLongitude(),
+                       capteur.getLatitude(), capteur.getLongitude()) <= rayonKm)
+        {
+            idsVoisins.insert(capteur.getId());
+        }
+    }
+
+    // On filtre les mesures appartenant aux capteurs voisins.
+    vector<Mesure> resultat;
+
+    for (const Mesure& mesure : mesures_) {
+        if (idsVoisins.count(mesure.getCapteurId())) {
+            resultat.push_back(mesure);
+        }
+    }
+
+    return resultat;
+}
+
+// ============================================================
+// Accès aux purificateurs
+// ============================================================
+
+// Retourne un pointeur vers le purificateur correspondant à l'identifiant donné,
+// ou nullptr s'il n'existe pas.
+Purificateur* DataReader::getPurificateur(const string& idPurificateur) {
+    for (Purificateur& purificateur : purificateurs_) {
+        if (purificateur.getId() == idPurificateur) {
+            return &purificateur;
+        }
+    }
     return nullptr;
 }
 
-// ---------------- Mutations ----------------
+// ============================================================
+// Mutations (modification de l'état des données)
+// ============================================================
 
-void DataReader::marquerCapteur(const std::string& idCapteur, bool estFiable) {
-    if (auto* c = getCapteur(idCapteur)) c->setEstFiable(estFiable);
+// Marque un capteur comme fiable ou non fiable.
+void DataReader::marquerCapteur(const string& idCapteur, bool estFiable) {
+    Capteur* capteur = getCapteur(idCapteur);
+    if (capteur != nullptr) {
+        capteur->setEstFiable(estFiable);
+    }
 }
 
-void DataReader::marquerMesuresInvalides(const std::string& idCapteur) {
-    for (auto& m : mesures_) if (m.getCapteurId() == idCapteur) m.setEstValide(false);
+// Marque toutes les mesures d'un capteur donné comme invalides.
+void DataReader::marquerMesuresInvalides(const string& idCapteur) {
+    for (Mesure& mesure : mesures_) {
+        if (mesure.getCapteurId() == idCapteur) {
+            mesure.setEstValide(false);
+        }
+    }
 }
 
+// Met à jour un capteur existant ou l'ajoute s'il n'existe pas encore.
 void DataReader::sauvegarderCapteur(const Capteur& capteur) {
-    if (auto* c = getCapteur(capteur.getId())) {
-        *c = capteur;
+    Capteur* existant = getCapteur(capteur.getId());
+
+    if (existant != nullptr) {
+        // On écrase les données du capteur existant.
+        *existant = capteur;
     } else {
+        // Le capteur est nouveau : on l'ajoute à la collection.
         capteurs_.push_back(capteur);
     }
 }
 
-// ---------------- Ajouts ----------------
+// ============================================================
+// Ajouts d'entités
+// ============================================================
 
-void DataReader::addCapteur(const Capteur& c)                  { capteurs_.push_back(c); }
-void DataReader::addUtilisateur(std::shared_ptr<Utilisateur> u){ utilisateurs_.push_back(std::move(u)); }
-void DataReader::addPurificateur(const Purificateur& p)        { purificateurs_.push_back(p); }
-void DataReader::addMesure(const Mesure& m)                    { mesures_.push_back(m); }
+// Ajoute un capteur à la collection.
+void DataReader::addCapteur(const Capteur& capteur) {
+    capteurs_.push_back(capteur);
+}
 
-// ---------------- Utilisateurs ----------------
+// Ajoute un utilisateur à la collection (via pointeur partagé).
+void DataReader::addUtilisateur(shared_ptr<Utilisateur> utilisateur) {
+    utilisateurs_.push_back(move(utilisateur));
+}
 
-std::shared_ptr<Utilisateur> DataReader::getUtilisateur(const std::string& id) const {
-    for (const auto& u : utilisateurs_) if (u->getId() == id) return u;
+// Ajoute un purificateur à la collection.
+void DataReader::addPurificateur(const Purificateur& purificateur) {
+    purificateurs_.push_back(purificateur);
+}
+
+// Ajoute une mesure à la collection.
+void DataReader::addMesure(const Mesure& mesure) {
+    mesures_.push_back(mesure);
+}
+
+// ============================================================
+// Accès aux utilisateurs
+// ============================================================
+
+// Retourne le pointeur partagé vers l'utilisateur correspondant à l'identifiant donné,
+// ou nullptr s'il n'existe pas.
+shared_ptr<Utilisateur> DataReader::getUtilisateur(const string& id) const {
+    for (const shared_ptr<Utilisateur>& utilisateur : utilisateurs_) {
+        if (utilisateur->getId() == id) {
+            return utilisateur;
+        }
+    }
     return nullptr;
 }
 
-Particulier* DataReader::getParticulier(const std::string& id) {
-    for (auto& u : utilisateurs_) {
-        if (u->getId() == id && u->getRole() == RoleUtilisateur::PARTICULIER) {
-            return static_cast<Particulier*>(u.get());
+// Retourne un pointeur brut vers le Particulier correspondant à l'identifiant donné,
+// ou nullptr s'il n'existe pas ou si l'utilisateur n'est pas un particulier.
+Particulier* DataReader::getParticulier(const string& id) {
+    for (shared_ptr<Utilisateur>& utilisateur : utilisateurs_) {
+        if (utilisateur->getId() == id
+            && utilisateur->getRole() == RoleUtilisateur::PARTICULIER)
+        {
+            return static_cast<Particulier*>(utilisateur.get());
         }
     }
     return nullptr;

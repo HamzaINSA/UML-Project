@@ -9,6 +9,8 @@
 #include "../model/DateTime.h"
 #include "../model/Mesure.h"
 
+using namespace std;
+
 namespace airwatcher {
 
 class DataReader;
@@ -28,42 +30,36 @@ public:
     void setAdministrationService(AdministrationService* admin) { admin_ = admin; }
 
     // Pseudocode scenario 2.
-    double calculerMoyenneAQI(double lat, double lon, double rayon,
-                              const DateTime& debut, const DateTime& fin);
+    double calculerMoyenneAQI(double lat, double lon, double rayon,const DateTime& debut, const DateTime& fin);
 
     // Variantes utilisées par EnvironmentalService.
-    double calculerMoyenneZonePendant(double lat, double lon, double rayon,
-                                      const DateTime& debut, const DateTime& fin);
-    double calculerMoyenneZoneJusquaDateDebut(double lat, double lon, double rayon,
-                                              const DateTime& dateLimite);
+    double calculerMoyenneZonePendant(double lat, double lon, double rayon,const DateTime& debut, const DateTime& fin);
+    double calculerMoyenneZoneJusquaDateDebut(double lat, double lon, double rayon,const DateTime& dateLimite);
 
     // Pseudocode scenario 4.
     double estimerQualiteZone(double lat, double lon, double rayon,
                               const DateTime& debut, const DateTime& fin);
 
     // Pseudocode scenario 3.
-    std::vector<CapteurScore> comparerCapteurs(const std::string& idRef,
+    vector<CapteurScore> comparerCapteurs(const string& idRef,
                                                const DateTime& debut, const DateTime& fin);
 
     // Calcul ATMO.
-    double calculerIndiceATMO(const std::vector<Mesure>& mesures) const;
+    double calculerIndiceATMO(const vector<Mesure>& mesures) const;
 
-    double calculerScoreSimilarite(const std::vector<Mesure>& mesuresRef,
-                                   const std::vector<Mesure>& mesures) const;
+    double calculerScoreSimilarite(const vector<Mesure>& mesuresRef,const vector<Mesure>& mesures) const;
+
+    vector<pair<Capteur*, vector<Mesure>>> trouverCapteursProchesPourInterpolation(double lat, double lon) const;
+    double interpolerPondereeParDistance(const vector<pair<Capteur*, vector<Mesure>>>& proches,double lat, double lon) const;
 
 private:
     DataReader&            data_;
     PerformanceMonitor&    perf_;
     AdministrationService* admin_ = nullptr;
 
-    void   trierParScoreCroissant(std::vector<CapteurScore>& classement) const;
-    double interpolerPondereeParDistance(
-        const std::vector<std::pair<Capteur*, std::vector<Mesure>>>& proches,
-        double lat, double lon) const;
-
-    static double moyenneAttribut(const std::vector<Mesure>& mesures,
-                                  const std::string& attributId);
-    static int    sousIndiceATMO(const std::string& attribut, double valeur);
+    void   trierParScoreCroissant(vector<CapteurScore>& classement) const;
+    static double moyenneAttribut(const vector<Mesure>& mesures,const string& attributId);
+    static int sousIndiceATMO(const string& attribut, double valeur);
 };
 
 } // namespace airwatcher

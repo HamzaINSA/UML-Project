@@ -5,20 +5,21 @@
 #include <string>
 #include <unordered_map>
 
+using namespace std;
 namespace airwatcher {
 
 class PerformanceMonitor {
 public:
-    void demarrer(const std::string& nomMethode);
-    long arreter(const std::string& nomMethode);
+    void demarrer(const string& nomMethode);
+    long arreter(const string& nomMethode);
 
     // Récupère la dernière durée mesurée (en ms) pour une méthode.
-    long getDerniereDuree(const std::string& nomMethode) const;
+    long getDerniereDuree(const string& nomMethode) const;
 
 private:
-    using Clock = std::chrono::steady_clock;
-    std::unordered_map<std::string, Clock::time_point> debuts_;
-    std::unordered_map<std::string, long>              dernieres_;
+    using Clock = chrono::steady_clock;
+    unordered_map<string, Clock::time_point> debuts_;
+    unordered_map<string, long>              dernieres_;
 };
 
 } // namespace airwatcher

@@ -7,6 +7,8 @@
 #include "../model/Mesure.h"
 #include "../model/Rapport.h"
 
+using namespace std;
+
 namespace airwatcher {
 
 class DataReader;
@@ -17,23 +19,23 @@ public:
     AdministrationService(DataReader& data, PerformanceMonitor& perf);
 
     // Pseudocode scenario 1.
-    Rapport analyserCapteur(const std::string& idCapteur);
+    Rapport analyserCapteur(const string& idCapteur);
 
     // Pseudocode scenario 6.
-    bool classifierFiabilite(const std::string& idCapteur);
+    bool classifierFiabilite(const string& idCapteur);
 
     // Comptage de points : +1 par requête utilisant des données du capteur.
-    void attribuerPoints(const std::vector<std::string>& idsParticuliers);
-    void desactiverAttributionPoints(const std::string& idParticulier);
+    void attribuerPoints(const vector<string>& idsParticuliers);
+    void desactiverAttributionPoints(const string& idParticulier);
 
 private:
     DataReader&         data_;
     PerformanceMonitor& perf_;
 
-    static double moyenne(const std::vector<Mesure>& mesures, const std::string& attribut);
-    static double ecartType(const std::vector<Mesure>& mesures, const std::string& attribut);
-    static bool   varianceConstante(const std::vector<Mesure>& mesures, const std::string& attribut);
-    static bool   horsBornes(const std::string& attribut, double valeur);
+    static double moyenne(const vector<Mesure>& mesures, const string& attribut);
+    static double ecartType(const vector<Mesure>& mesures, const string& attribut);
+    static bool   varianceConstante(const vector<Mesure>& mesures, const string& attribut);
+    static bool   horsBornes(const string& attribut, double valeur);
 };
 
 } // namespace airwatcher

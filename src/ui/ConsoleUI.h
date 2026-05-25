@@ -7,6 +7,8 @@
 #include "../model/Parametres.h"
 #include "../model/Utilisateur.h"
 
+using namespace std;
+
 namespace airwatcher {
 
 class DataReader;
@@ -31,18 +33,20 @@ public:
     void menuParticulier();
 
     // Saisies (signatures du diagramme de classe)
-    std::string saisirIdCapteur();
+    string saisirIdCapteur();
     ParametresZone        saisirParametres();
+    ParametresPosition    saisirParametresPosition();
     ParametresComparaison choisirCapteurRef();
-    std::string           choisirPurificateur();
+    string           choisirPurificateur();
     ParametresFiabilite   choisirParticulierEtCapteur();
 
-    void afficherResultat(const std::string& resultat);
-    void afficherAlerte(const std::string& message);
+    void afficherResultat(const string& resultat);
+    void afficherAlerte(const string& message);
     // Cas d'utilisation déclenchés depuis les menus
     void analyserCapteur();
     void comparerCapteurs();
     void qualiteAirPosition();
+    void qualiteAirZone();
     void impactPurificateurs();
     void fiabiliteUtilisateur();
     void statistiques();
@@ -52,7 +56,7 @@ private:
     AirQualityService&     airQuality_;
     AdministrationService& admin_;
     EnvironmentalService&  env_;
-    std::shared_ptr<Utilisateur> utilisateurConnecte_;
+    shared_ptr<Utilisateur> utilisateurConnecte_;
 
     void menuUtilisateurLimite();
 
@@ -60,10 +64,10 @@ private:
     bool seConnecter();
     bool creerCompte();
 
-    DateTime    saisirDateTime(const std::string& invite);
-    double      saisirDouble(const std::string& invite);
-    int         saisirEntier(const std::string& invite);
-    std::string saisirLigne(const std::string& invite);
+    DateTime    saisirDateTime(const string& invite);
+    double      saisirDouble(const string& invite);
+    int         saisirEntier(const string& invite);
+    string saisirLigne(const string& invite);
 };
 
 } // namespace airwatcher
