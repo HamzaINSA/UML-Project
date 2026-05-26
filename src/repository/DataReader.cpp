@@ -668,8 +668,6 @@ vector<Mesure> DataReader::getMesuresAuTimestamp(const string& idCapteur,
 // Retourne toutes les mesures des capteurs voisins d'un capteur de référence
 // situés dans le rayon spécifié.
 vector<Mesure> DataReader::getMesuresCapteursVoisins(const string& idCapteur, double rayonKm) const {
-
-    cout << "Rayon de recherche : " << rayonKm << " km\n";
     const Capteur* reference = getCapteur(idCapteur);
     if (reference == nullptr) {
         return vector<Mesure>();
@@ -686,13 +684,6 @@ vector<Mesure> DataReader::getMesuresCapteursVoisins(const string& idCapteur, do
         if (dist <= rayonKm) {
             voisinsDistances.emplace_back(&capteur, dist);
         }
-    }
-
-    // Afficher les voisins avant tri pour vérification
-    cout << "Voisins avant tri :\n";
-    for (const auto& voisin : voisinsDistances) {
-        cout << "Voisin : " << voisin.first->getId()
-             << ", Distance : " << voisin.second << " km" << endl;
     }
 
     // Construire un set des IDs voisins pour une recherche en O(1)
