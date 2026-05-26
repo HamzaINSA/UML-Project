@@ -676,18 +676,21 @@ vector<Mesure> DataReader::getMesuresCapteursVoisins(const string& idCapteur, do
 
     // On construit l'ensemble des identifiants de capteurs voisins.
     unordered_set<string> idsVoisins;
+    vector<Capteur* , double> voisinsDistances;
 
     for (const Capteur& capteur : capteurs_) {
         if (capteur.getId() == idCapteur) {
             continue;
         }
 
-        if (distanceKm(reference->getLatitude(), reference->getLongitude(),
-                       capteur.getLatitude(), capteur.getLongitude()) <= rayonKm)
+        // si le capteur est dans le rayon de voisinage, on l'ajoute à la liste des voisins
+        if (distanceKm(reference->getLatitude(), reference->getLongitude(),capteur.getLatitude(), capteur.getLongitude()) <= rayonKm)
         {
-            idsVoisins.insert(capteur.getId());
+
+            //
         }
     }
+    // classer
 
     // On filtre les mesures appartenant aux capteurs voisins.
     vector<Mesure> resultat;
