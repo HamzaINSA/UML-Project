@@ -224,28 +224,28 @@ bool AdministrationService::classifierFiabilite(const string& idCapteur) {
     }
 
     vector<Mesure> mesuresPrive   = data_.getMesuresCapteur(idCapteur);
-    vector<Mesure> mesuresVoisins = data_.getMesuresCapteursVoisins(idCapteur);
+    vector<Mesure> mesuresVoisins = data_.getMesuresCapteursVoisins(idCapteur , 50.0); // on compare avec les capteurs dans un rayon de 50km.
 
     int nbAnomalies = 0;
 
-    // On compte les anomalies pour chacun des quatre attributs surveillés.
+    // On compte les anomalies pour chacun des quatre attributs surveillés
     for (const string& attribut : kAttributs) {
         double moyennePrive     = moyenne(mesuresPrive, attribut);
         double moyenneVoisinage = moyenne(mesuresVoisins, attribut);
         double ecartTypeVoisins = ecartType(mesuresVoisins, attribut);
 
-        // Anomalie si la moyenne du capteur s'éloigne trop de celle de ses voisins.
+        // Anomalie si la moyenne du capteur s'éloigne trop de celle de ses voisins
         if (ecartTypeVoisins > 0.0 && fabs(moyennePrive - moyenneVoisinage) > kK * ecartTypeVoisins)
         {
             nbAnomalies = nbAnomalies + 1;
         }
 
-        // Anomalie si les valeurs du capteur sont anormalement constantes.
+        // Anomalie si les valeurs du capteur sont anormalement constantes
         if (varianceConstante(mesuresPrive, attribut)) {
             nbAnomalies = nbAnomalies + 1;
         }
 
-        // Anomalie si la moyenne est hors des bornes physiques acceptables.
+        // Anomalie si la moyenne est hors des bornes physiques acceptables
         if (horsBornes(attribut, moyennePrive)) {
             nbAnomalies = nbAnomalies + 1;
         }
@@ -258,7 +258,7 @@ bool AdministrationService::classifierFiabilite(const string& idCapteur) {
 
     // Si le nombre d'anomalies ne dépasse pas le seuil de tolérance,
     // le capteur est considéré fiable.
-    if (nbAnomalies <= kSeuilTolerance) {
+    if (nbAnomalies < kSeuilTolerance) { // si moins de 2 anomalies, le capteur est fiable
         capteur->setEstFiable(true);
 
         if (particulier != nullptr) {
@@ -269,7 +269,7 @@ bool AdministrationService::classifierFiabilite(const string& idCapteur) {
         data_.sauvegarderCapteur(*capteur);
         estFiable = true;
 
-    } else {
+    } else { // si 2 anomalies ou plus, le capteur est non fiable
         // Le capteur est non fiable : son propriétaire est également marqué non fiable.
         capteur->setEstFiable(false);
 

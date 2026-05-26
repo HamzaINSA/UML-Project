@@ -668,38 +668,46 @@ vector<Mesure> DataReader::getMesuresAuTimestamp(const string& idCapteur,
 // Retourne toutes les mesures des capteurs voisins d'un capteur de référence
 // situés dans le rayon spécifié.
 vector<Mesure> DataReader::getMesuresCapteursVoisins(const string& idCapteur, double rayonKm) const {
-    const Capteur* reference = getCapteur(idCapteur);
 
+    cout << "Rayon de recherche : " << rayonKm << " km\n";
+    const Capteur* reference = getCapteur(idCapteur);
     if (reference == nullptr) {
         return vector<Mesure>();
     }
 
-    // On construit l'ensemble des identifiants de capteurs voisins.
-    unordered_set<string> idsVoisins;
-    vector<Capteur* , double> voisinsDistances;
+    // Construire la liste des capteurs voisins avec leur distance
+    vector<pair<const Capteur*, double>> voisinsDistances;
 
     for (const Capteur& capteur : capteurs_) {
         if (capteur.getId() == idCapteur) {
             continue;
         }
-
-        // si le capteur est dans le rayon de voisinage, on l'ajoute à la liste des voisins
-        if (distanceKm(reference->getLatitude(), reference->getLongitude(),capteur.getLatitude(), capteur.getLongitude()) <= rayonKm)
-        {
-
-            //
+        double dist = distanceKm(reference->getLatitude(), reference->getLongitude(),capteur.getLatitude(),    capteur.getLongitude());
+        if (dist <= rayonKm) {
+            voisinsDistances.emplace_back(&capteur, dist);
         }
     }
-    // classer
 
-    // On filtre les mesures appartenant aux capteurs voisins.
+    // Afficher les voisins avant tri pour vérification
+    cout << "Voisins avant tri :\n";
+    for (const auto& voisin : voisinsDistances) {
+        cout << "Voisin : " << voisin.first->getId()
+             << ", Distance : " << voisin.second << " km" << endl;
+    }
+
+    // Construire un set des IDs voisins pour une recherche en O(1)
+    unordered_set<string> voisinIds;
+    for (const auto& voisin : voisinsDistances) {
+        voisinIds.insert(voisin.first->getId());
+    }
+
+    // Filtrer les mesures appartenant aux capteurs voisins
     vector<Mesure> resultat;
-
     for (const Mesure& mesure : mesures_) {
-        if (idsVoisins.count(mesure.getCapteurId())) {
+        if (voisinIds.count(mesure.getCapteurId()) > 0) {
             resultat.push_back(mesure);
         }
-    }
+    }   
 
     return resultat;
 }

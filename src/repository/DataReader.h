@@ -44,8 +44,7 @@ public:
     vector<Mesure>    getMesuresAuTimestamp(const string& idCapteur,
                                                  const DateTime& timestamp,
                                                  long toleranceSec = 3600) const;
-    vector<Mesure>    getMesuresCapteursVoisins(const string& idCapteur,
-                                                     double rayonKm = 10.0) const;
+    vector<Mesure>    getMesuresCapteursVoisins(const string& idCapteur,double rayonKm = 50.0) const;
 
     // ----- Purificateurs -----
     Purificateur*          getPurificateur(const string& idPurificateur);
