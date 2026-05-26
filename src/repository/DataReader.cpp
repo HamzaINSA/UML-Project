@@ -667,8 +667,7 @@ vector<Mesure> DataReader::getMesuresAuTimestamp(const string& idCapteur,
 
 // Retourne toutes les mesures des capteurs voisins d'un capteur de référence
 // situés dans le rayon spécifié.
-vector<Mesure> DataReader::getMesuresCapteursVoisins(const string& idCapteur,
-                                                     double rayonKm) const {
+vector<Mesure> DataReader::getMesuresCapteursVoisins(const string& idCapteur, double rayonKm) const {
     const Capteur* reference = getCapteur(idCapteur);
 
     if (reference == nullptr) {

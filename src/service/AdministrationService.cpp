@@ -235,8 +235,7 @@ bool AdministrationService::classifierFiabilite(const string& idCapteur) {
         double ecartTypeVoisins = ecartType(mesuresVoisins, attribut);
 
         // Anomalie si la moyenne du capteur s'éloigne trop de celle de ses voisins.
-        if (ecartTypeVoisins > 0.0
-            && fabs(moyennePrive - moyenneVoisinage) > kK * ecartTypeVoisins)
+        if (ecartTypeVoisins > 0.0 && fabs(moyennePrive - moyenneVoisinage) > kK * ecartTypeVoisins)
         {
             nbAnomalies = nbAnomalies + 1;
         }
@@ -252,6 +251,9 @@ bool AdministrationService::classifierFiabilite(const string& idCapteur) {
         }
     }
 
+    // afficher le nombre d'anomalies détectées pour ce capteur
+
+    printf("Capteur %s : %d anomalies detectees\n", idCapteur.c_str(), nbAnomalies);
     bool estFiable;
 
     // Si le nombre d'anomalies ne dépasse pas le seuil de tolérance,
